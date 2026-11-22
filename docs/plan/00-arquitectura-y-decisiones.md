@@ -33,7 +33,7 @@
 | Base de datos | Supabase Postgres | Free: 500 MB BD, 1 GB storage, 50k MAU, 5 GB egress | Auth, RLS, Storage y RPC incluidos. |
 | Auth | Supabase Auth (email + contraseña, enlaces mágicos/invitaciones) | Free | Solo para miembros de empresas y superadmin. |
 | Archivos | Supabase Storage (bucket público `media`) | Free | Imágenes comprimidas en el navegador (WebP). La transformación de imágenes de Supabase es de pago → **no usarla**. |
-| Repo / CI | GitHub + GitHub Actions | Free (2.000 min/mes en privado) | Lint, test, migraciones, deploy, backups. |
+| Repo / CI | GitHub (repo **público**) + GitHub Actions | Free (minutos ilimitados en repos públicos) | Lint, test, migraciones, deploy, backups. |
 | Local | Docker Desktop + Supabase CLI (`supabase start`) + Wrangler | Gratis | Paridad con producción. |
 | DNS / TLS | Cloudflare DNS + Universal SSL | Free | Universal SSL cubre `roquintech.com` y `*.roquintech.com`. |
 
@@ -137,7 +137,7 @@ Validación de slug: `^(?!.*--)[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$` (3–32 car
 | Límite | Mitigación |
 |--------|-----------|
 | Supabase pausa proyectos inactivos 7 días | Workflow programado de GitHub que llama un RPC liviano (`ping`) 2 veces por semana. |
-| Supabase Free sin backups descargables | Workflow semanal `supabase db dump` comprimido (`gzip`) → artefacto de GitHub (retención 90 días). Ojo: GitHub Free da 500 MB de almacenamiento de artefactos en repos privados; si 13 dumps no caben, bajar la retención. |
+| Supabase Free sin backups descargables | Workflow semanal `supabase db dump` comprimido (`gzip`) y **cifrado** (`age` con clave pública en el repo; la privada solo fuera de GitHub) → artefacto de GitHub (retención 90 días). Cifrar es obligatorio: el repo es público (D17) y sus artefactos los puede descargar cualquiera. |
 | 1 GB Storage | Compresión en cliente a WebP, máx. 1600 px (≈150–300 KB) + miniatura 400 px; límite 2 MB por archivo y cuota de imágenes por empresa. |
 | 5 GB egress Supabase | Imágenes servidas **directo desde la URL pública** del bucket `media` (`{SUPABASE_URL}/storage/v1/object/public/media/{path}`), sin pasar por el Worker (ver D14). Nombres con hash de contenido (inmutables) y subida con `cacheControl: '31536000'` para que la CDN de Supabase y el navegador las cacheen; WebP comprimido para mantener bajo el egress. |
 | Worker Free: 100k req/día, 10 ms CPU | Los assets estáticos con hash no cuentan contra el Worker (`run_worker_first: ["/*", "!/assets/*"]`: toda navegación HTML y `/api` pasa por el Worker; `/assets/*` se sirve directo). Cache de RPC públicas 60 s. |
@@ -168,3 +168,4 @@ Pasarela de pagos, apps móviles nativas, envío de SMS, WhatsApp Business API, 
 | D14 | Imágenes por URL directa de Supabase Storage, no por proxy del Worker | El Worker corre antes que la caché de Cloudflare: cada imagen gastaría 1 de las 100k peticiones/día aunque esté cacheada (~15 por página → techo de ~6.000 visitas/día en total). La URL directa no consume Worker y aprovecha la CDN de Supabase. Si el egress (5 GB) se vuelve el cuello de botella, la salida es Cloudflare R2 + `media.roquintech.com`. La CSP debe permitir `img-src` del host de Supabase. |
 | D15 | Puertos locales propios: app en `5273`, Supabase en `544xx` (API 54421, BD 54422, Studio 54423, Mailpit 54424) | En la máquina de desarrollo conviven otros proyectos Vite y Supabase en los puertos por defecto (5173, 543xx). |
 | D16 | Versiones fijadas en la fase 01 (nov. 2026): TypeScript **6.0** (no 7), ESLint **9** (no 10), React Router **8**, Vite 8, Vitest 5, Tailwind 4.3, shadcn CLI 4 (estilo *new-york*, Radix) | `typescript-eslint` 8 solo admite TS < 6.1 y `eslint-plugin-jsx-a11y` solo ESLint ≤ 9. Subir cuando sus plugins lo soporten. React Router 8 es la versión estable actual; se usa en modo librería igual que v7. |
+| D17 | Repo público `Johaliz37/servigo` con `main` protegida (PR obligatorio, check `ci` en verde y al día, también para administradores) | GitHub Free solo permite proteger ramas en repos públicos; un repo privado exigiría GitHub Pro (de pago). Consecuencia: ningún secreto ni dato real de empresas puede entrar al repo (`.env*`, `.dev.vars` y dumps de BD siempre fuera; los backups de la fase 04 van como artefactos, que en repos públicos **cualquiera puede descargar**: hay que cifrarlos o guardarlos en otro sitio). |

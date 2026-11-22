@@ -58,7 +58,7 @@ Publicar Servigo en `https://servigo.roquintech.com` (plataforma) y `https://*.r
   3. `wrangler deploy --env production` (secret `CLOUDFLARE_API_TOKEN` con permisos *Workers Scripts:Edit*, *Workers Routes:Edit*, `CLOUDFLARE_ACCOUNT_ID`).
   4. Smoke test: `curl https://demo.roquintech.com/api/health`.
 - [ ] `keepalive.yml`: cron `0 12 * * 1,4` → `curl` a `/api/health?db=1` (llama `ping()`), evita la pausa por inactividad de Supabase Free.
-- [ ] `backup.yml`: cron semanal → `supabase db dump --data-only` y `--schema` → artefacto (retención 90 días). Documentar restauración en `docs/runbook.md`.
+- [ ] `backup.yml`: cron semanal → `supabase db dump --data-only` y `--schema` → `gzip` → cifrado con `age` (destinatario = clave pública en `secrets`/repo; la privada nunca en GitHub) → artefacto (retención 90 días). Sin cifrar **no**: el repo es público (`00` D17). Documentar restauración en `docs/runbook.md`.
 - [ ] Dependabot para npm y GitHub Actions (mensual).
 - [ ] Proteger `main`: requerir `ci` verde y 1 aprobación (o solo CI si es un único desarrollador).
 
@@ -73,5 +73,5 @@ Publicar Servigo en `https://servigo.roquintech.com` (plataforma) y `https://*.r
 - [ ] `https://servigo.roquintech.com` muestra la landing de Servigo; `https://servigo.roquintech.com/console` la consola superadmin; `https://www.roquintech.com` redirige a `roquintech.com`; `https://<empresa>.roquintech.com` el sitio de la empresa, todos con candado TLS válido.
 - [ ] Un PR con un test roto bloquea el merge.
 - [ ] Merge a `main` aplica migraciones y despliega sin intervención.
-- [ ] Workflow de backup genera un artefacto descargable.
+- [ ] Workflow de backup genera un artefacto cifrado que solo se puede abrir con la clave privada (probar restauración en local).
 - [ ] Factura de Cloudflare, Supabase y GitHub: **0 USD**. Revisar que no se activó ningún add-on.
