@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "servigo",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Toda navegación HTML y /api pasa por el Worker; /assets/* (con hash) se sirve directo. Ver 00 D8.
+    "run_worker_first": ["/*", "!/assets/*"],
+  },
+  "vars": {
+    "ROOT_DOMAIN": "localhost",
+    "PLATFORM_SUBDOMAIN": "servigo",
+    "SUPABASE_URL": "http://127.0.0.1:54421",
+  },
+  "observability": { "enabled": true },
+}

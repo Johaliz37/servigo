@@ -1,0 +1,11 @@
+# Hooks de git (opcional, fase 01 §4). Se instalan solos con `pnpm install`.
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      glob: '*.{ts,tsx,js,json,jsonc,css,md,yml,yaml,html}'
+      run: pnpm exec prettier --write --ignore-unknown {staged_files}
+      stage_fixed: true
+    lint:
+      glob: '*.{ts,tsx,js}'
+      run: pnpm exec eslint --no-warn-ignored {staged_files}

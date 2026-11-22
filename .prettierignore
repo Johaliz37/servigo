@@ -1,0 +1,9 @@
+dist
+.wrangler
+pnpm-lock.yaml
+worker-configuration.d.ts
+src/shared/database.types.ts
+supabase/.temp
+playwright-report
+test-results
+docs

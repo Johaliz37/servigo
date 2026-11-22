@@ -1,0 +1,1 @@
+-- Datos de ejemplo para desarrollo local. Se llena en la fase 02.

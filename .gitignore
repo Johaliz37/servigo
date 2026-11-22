@@ -1,0 +1,31 @@
+# Dependencias y builds
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+worker-configuration.d.ts.bak
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Pruebas
+playwright-report/
+test-results/
+blob-report/
+coverage/
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+*.log

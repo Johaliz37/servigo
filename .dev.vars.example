@@ -1,0 +1,5 @@
+# Secretos del Worker en local. Copiar a `.dev.vars` (nunca se versiona).
+# SUPABASE_SECRET_KEY: lo imprime `pnpm db:start` (SECRET_KEY).
+SUPABASE_SECRET_KEY=sb_secret_xxx
+# Clave de prueba de Turnstile que siempre valida (https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
