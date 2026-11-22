@@ -20,8 +20,8 @@ No incluye: esquema de datos (fase 02), despliegue (fase 04).
 
 ### 1. Repositorio
 - [x] `git init`, rama `main`, `.gitignore` (node, `.wrangler/`, `.dev.vars`, `supabase/.temp`, `.env*` salvo `.env.example`, `playwright-report/`).
-- [ ] Crear repo privado: `gh repo create servigo --private --source . --push`.
-- [ ] Protección de `main`: requerir PR y el check `ci` verde (se activa en esta fase, ver §6).
+- [x] Crear repo privado: `gh repo create servigo --private --source . --push`. **Hecho como público** (`Johaliz37/servigo`): GitHub Free solo permite proteger ramas en repos públicos.
+- [x] Protección de `main`: requerir PR y el check `ci` verde (se activa en esta fase, ver §6).
 - [x] `README.md` raíz con: qué es, requisitos, arranque rápido, enlace a `docs/plan/README.md`.
 - [x] `CLAUDE.md` / `AGENTS.md` con comandos clave y la regla "leer `docs/plan/00` + fase actual".
 
@@ -96,15 +96,15 @@ Supabase ya corre en Docker vía CLI. Para quien prefiera no instalar Node en Wi
 La CI arranca aquí para que todo el código de las fases siguientes entre validado; la fase 04 la amplía (BD, E2E) y añade el CD.
 - [x] `.github/workflows/ci.yml` (en `pull_request` y `push` a `main`): `pnpm/action-setup` + `actions/setup-node` (Node 24, cache pnpm) → `pnpm install --frozen-lockfile` → `lint` → `typecheck` → `test` → `build`.
 - [x] `concurrency` por rama con `cancel-in-progress: true` (ahorra minutos del plan Free).
-- [ ] Activar la protección de `main` exigiendo el check `ci`.
+- [x] Activar la protección de `main` exigiendo el check `ci`.
 
 ## Criterios de aceptación
 
 - [x] `pnpm db:start && pnpm dev` levanta todo; `http://demo.localhost:5273` muestra "Tenant: demo" y `http://localhost:5273` muestra "Plataforma".
 - [x] `http://demo.localhost:5273/api/health` responde `{ ok: true, tenant: "demo" }`.
 - [x] `pnpm lint && pnpm typecheck && pnpm test` pasan.
-- [ ] Repo en GitHub con el primer commit y README de arranque.
-- [ ] Un PR a `main` ejecuta `ci.yml` y no se puede fusionar si falla.
+- [x] Repo en GitHub con el primer commit y README de arranque.
+- [x] Un PR a `main` ejecuta `ci.yml` y no se puede fusionar si falla.
 - [x] `http://demo.localhost:5273/s/cualquier-ruta` (enlace profundo) también pasa por el Worker (se ve el tenant inyectado), no solo `/`.
 
 ## Notas de ejecución
