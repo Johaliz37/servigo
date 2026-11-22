@@ -14,20 +14,20 @@ Esquema de todas las entidades del producto. Las fases posteriores **usan** esta
 
 ## Tareas
 
-- [ ] Migración `extensions`: `pgcrypto`, `btree_gist`, `citext`, `pg_trgm`.
-- [ ] Migración `enums`.
-- [ ] Migración `core` (plataforma, empresas, miembros, sedes).
-- [ ] Migración `content` (acerca de, patrocinadores, redes, footer).
-- [ ] Migración `catalog` (ítems, detalles, fotos, descuentos, relación servicio-producto, por sede).
-- [ ] Migración `booking_fields`.
-- [ ] Migración `availability`.
-- [ ] Migración `bookings`.
-- [ ] Migración `rls_helpers` + `rls_policies`.
-- [ ] Migración `storage` (bucket + políticas).
-- [ ] Migración `triggers` (`updated_at`, validaciones cruzadas de `company_id`).
-- [ ] `seed.sql` con 2 empresas de ejemplo (`demo` con 2 sedes y `spa` con 1 sede), servicios, productos, campos, disponibilidad y 20 reservas.
-- [ ] Pruebas pgTAP en `supabase/tests/`.
-- [ ] `pnpm db:types` y commit del archivo de tipos.
+- [x] Migración `extensions`: `pgcrypto`, `btree_gist`, `citext`, `pg_trgm`.
+- [x] Migración `enums`.
+- [x] Migración `core` (plataforma, empresas, miembros, sedes).
+- [x] Migración `content` (acerca de, patrocinadores, redes, footer).
+- [x] Migración `catalog` (ítems, detalles, fotos, descuentos, relación servicio-producto, por sede).
+- [x] Migración `booking_fields`.
+- [x] Migración `availability`.
+- [x] Migración `bookings`.
+- [x] Migración `rls_helpers` + `rls_policies`.
+- [x] Migración `storage` (bucket + políticas).
+- [x] Migración `triggers` (`updated_at`, validaciones cruzadas de `company_id`).
+- [x] `seed.sql` con 2 empresas de ejemplo (`demo` con 2 sedes y `spa` con 1 sede), servicios, productos, campos, disponibilidad y 20 reservas.
+- [x] Pruebas pgTAP en `supabase/tests/`.
+- [x] `pnpm db:types` y commit del archivo de tipos.
 
 ## 1. Enums
 
@@ -250,18 +250,32 @@ Todas `security definer`, `set search_path = ''`, nombres calificados, `grant ex
 
 ## 7. Pruebas pgTAP (`supabase/tests/`)
 
-- [ ] `rls_isolation.test.sql`: usuario de empresa A no ve ni modifica filas de B en cada tabla.
-- [ ] `rls_staff.test.sql`: staff con `branch_ids = {sede1}` no ve reservas de sede2.
-- [ ] `anon.test.sql`: `anon` no puede `select` en ninguna tabla; sí puede ejecutar `ping` y `get_company_by_slug`.
-- [ ] `consistency.test.sql`: insertar foto con `company_id` distinto al del ítem falla.
-- [ ] `constraints.test.sql`: servicio sin duración falla; slug reservado falla; porcentaje > 100 falla.
+- [x] `rls_isolation.test.sql`: usuario de empresa A no ve ni modifica filas de B en cada tabla.
+- [x] `rls_staff.test.sql`: staff con `branch_ids = {sede1}` no ve reservas de sede2.
+- [x] `anon.test.sql`: `anon` no puede `select` en ninguna tabla; sí puede ejecutar `ping` y `get_company_by_slug`.
+- [x] `consistency.test.sql`: insertar foto con `company_id` distinto al del ítem falla.
+- [x] `constraints.test.sql`: servicio sin duración falla; slug reservado falla; porcentaje > 100 falla.
 
 Helper: usar `basejump-supabase_test_helpers` (`tests.create_supabase_user`, `tests.authenticate_as`) o funciones propias equivalentes.
 
 ## Criterios de aceptación
 
-- [ ] `pnpm db:reset` aplica migraciones y seed sin errores.
-- [ ] `pnpm db:test` pasa al 100 %.
-- [ ] `supabase db lint` sin errores; *Security Advisor* de Studio sin alertas de RLS deshabilitado o `search_path` mutable.
-- [ ] `src/shared/database.types.ts` generado y commiteado.
-- [ ] Diagrama ER (Mermaid) añadido en `docs/er.md`.
+- [x] `pnpm db:reset` aplica migraciones y seed sin errores.
+- [x] `pnpm db:test` pasa al 100 %.
+- [x] `supabase db lint` sin errores; *Security Advisor* de Studio sin alertas de RLS deshabilitado o `search_path` mutable.
+- [x] `src/shared/database.types.ts` generado y commiteado.
+- [x] Diagrama ER (Mermaid) añadido en `docs/er.md`.
+
+## Notas de ejecución
+
+- Migraciones en `supabase/migrations/20261122170000_*` … `20261122171100_*`. El orden real es: extensions → enums → core → content → catalog → booking_fields → availability → bookings → triggers → rls → storage → rpc_base.
+- **Admin gestiona solo staff** (miembros e invitaciones), como dice §4. También se ajustó `00 §7`.
+- **Staff** puede crear, editar y borrar eventos de disponibilidad de sus sedes (la "gestión de calendario" de `00 §7`). Los eventos de nivel empresa solo los editan owner y admin.
+- **RPC**: solo `ping` y `get_company_by_slug`. Las de sitio público y reservas se crean con su firma definitiva en las fases 09–10.
+- **Solo el superadmin** cambia `slug` y `status` de una empresa (trigger `companies_guard_platform_fields`).
+- Con `search_path = ''`, comparar columnas `citext` exige `operator(extensions.=)`; un `=` a secas compara como `text` y distingue mayúsculas.
+- Quitar a `PUBLIC` el permiso de ejecutar funciones nuevas requiere `alter default privileges ... revoke execute on functions from public` **sin** `in schema`.
+- Pruebas: helpers propios en `supabase/tests/000-setup-tests-hooks.sql` (esquema `tests`, solo local/CI) en lugar de `basejump-supabase_test_helpers`. `tests.create_tenant()` crea una fila en cada tabla, y las pruebas de aislamiento recorren todas las tablas con `company_id` leyendo el catálogo: una tabla nueva queda cubierta sin tocar los tests. Total: 150 aserciones.
+- `supabase db advisors --type all --level warn`: 0 avisos (equivale al Security Advisor de Studio).
+- Seed: usuarios `superadmin@servigo.local`, `owner|admin|staff@demo.local` y `owner@spa.local` (contraseña `Servigo123!`, solo local). La reserva `K7M29QXA` es fija para pruebas.
+- `pnpm db:types` formatea el archivo generado con Prettier.

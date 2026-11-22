@@ -31,7 +31,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "db:types": "supabase gen types typescript --local > src/shared/database.types.ts",
+    "db:types": "supabase gen types typescript --local > src/shared/database.types.ts && prettier --write src/shared/database.types.ts",
     "cf:types": "wrangler types"
   },
   "dependencies": {

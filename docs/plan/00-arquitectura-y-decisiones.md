@@ -128,7 +128,7 @@ Validación de slug: `^(?!.*--)[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$` (3–32 car
 |-----|---------|
 | `platform_admin` | Todo. Alta/baja de empresas, invitar owner. |
 | `owner` | Todo dentro de su empresa, incluye miembros y eliminar datos. |
-| `admin` | Todo dentro de su empresa salvo gestionar owners. |
+| `admin` | Todo dentro de su empresa salvo gestionar owners y otros admins: entre los miembros solo gestiona `staff` (fase 02 §4). |
 | `staff` | Ver y gestionar reservas y calendario de las sedes asignadas (`branch_ids`); solo lectura de catálogo. |
 | `anon` (cliente final) | Solo RPC públicas y endpoints del Worker. |
 
