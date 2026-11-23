@@ -1,0 +1,165 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ClientTenant, CompanyBySlugRow } from '@shared/tenant';
+import { buildHead, escapeHtml, inlineJson } from './html';
+import app from './index';
+
+const env = {
+  ROOT_DOMAIN: 'localhost',
+  PLATFORM_SUBDOMAIN: 'servigo',
+  SUPABASE_URL: 'http://sb.test',
+  SUPABASE_SECRET_KEY: 'sb_secret_test',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
+  TURNSTILE_SECRET_KEY: 'x',
+  ASSETS: { fetch: () => Promise.resolve(new Response('<html><head><title>Servigo</title></head></html>')) },
+} as unknown as Env;
+
+const demoRow: CompanyBySlugRow = {
+  id: 'c1',
+  slug: 'demo',
+  name: 'Barbería <Demo>',
+  status: 'active',
+  timezone: 'America/Bogota',
+  currency: 'COP',
+  locale: 'es-CO',
+  branding: { logo_path: 'c1/logo.webp', favicon_path: null, primary_color: '#1F4E79', secondary_color: null },
+  seo: { title: 'Barbería Demo', description: 'Reserva tu corte' },
+};
+
+/** Simula PostgREST: `get_company_by_slug` devuelve la fila de `rows[slug]` o null. */
+function mockSupabase(rows: Record<string, CompanyBySlugRow>) {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (url.endsWith('/rest/v1/rpc/get_company_by_slug')) {
+      const { p_slug } = JSON.parse(String(init?.body)) as { p_slug: string };
+      return Response.json(rows[p_slug] ?? null);
+    }
+    return Response.json({ message: 'unexpected' }, { status: 500 });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
+const req = (url: string, init?: RequestInit) => app.request(url, init, env);
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('html', () => {
+  it('escapa HTML y JSON en línea', () => {
+    expect(escapeHtml(`<a href="x">'&'</a>`)).toBe('&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;');
+    const json = inlineJson({ name: '</script><!--', sep: ' ' });
+    expect(json).not.toContain('<');
+    expect(json).not.toContain(' ');
+    expect(JSON.parse(json)).toEqual({ name: '</script><!--', sep: ' ' });
+  });
+
+  it('arma título, Open Graph y __TENANT__ de la empresa', () => {
+    const tenant: ClientTenant = {
+      type: 'company',
+      slug: 'demo',
+      company: {
+        id: 'c1',
+        slug: 'demo',
+        name: 'Demo "Uno"',
+        status: 'active',
+        timezone: 'America/Bogota',
+        currency: 'COP',
+        locale: 'es-CO',
+        logoUrl: 'http://sb/logo.webp',
+        faviconUrl: null,
+        primaryColor: '#1F4E79',
+        secondaryColor: null,
+        seo: { description: 'Cortes' },
+      },
+    };
+    const pub = buildHead(tenant, '/');
+    expect(pub.title).toBe('Demo "Uno"');
+    expect(pub.tags).toContain('<meta property="og:title" content="Demo &quot;Uno&quot;">');
+    expect(pub.tags).toContain('<meta property="og:image" content="http://sb/logo.webp">');
+    expect(pub.tags).toContain('<link rel="icon" href="http://sb/logo.webp">');
+    expect(pub.tags).toContain('window.__TENANT__=');
+    expect(pub.tags).not.toContain('noindex');
+
+    const admin = buildHead(tenant, '/admin/reservas');
+    expect(admin.title).toBe('Administración · Demo "Uno"');
+    expect(admin.tags).toContain('noindex');
+  });
+});
+
+describe('worker', () => {
+  it('health no depende de la empresa', async () => {
+    mockSupabase({});
+    const res = await req('http://demo.localhost:5273/api/health');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, tenant: 'demo', platform: false });
+  });
+
+  it('www → 301 solo en producción; host desconocido → 404', async () => {
+    const prod = { ...env, ROOT_DOMAIN: 'roquintech.com' } as unknown as Env;
+    const res = await app.request('https://www.roquintech.com/x?y=1', undefined, prod);
+    expect(res.status).toBe(301);
+    expect(res.headers.get('location')).toBe('https://roquintech.com/x?y=1');
+    expect((await req('http://a.b.localhost:5273/')).status).toBe(404);
+  });
+
+  it('empresa inexistente → 404 de tenant (HTML y API)', async () => {
+    mockSupabase({});
+    const html = await req('http://noexiste.localhost:5273/');
+    expect(html.status).toBe(404);
+    expect(await html.text()).toContain('Esta empresa no existe');
+    const api = await req('http://noexiste.localhost:5273/api/public/tenant');
+    expect(api.status).toBe(404);
+  });
+
+  it('empresa suspendida → 503', async () => {
+    mockSupabase({ demo: { ...demoRow, status: 'suspended' } });
+    const res = await req('http://demo.localhost:5273/admin');
+    expect(res.status).toBe(503);
+    expect(await res.text()).toContain('temporalmente no disponible');
+  });
+
+  it('BD caída → 503 sin romper', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('down', { status: 502 })),
+    );
+    const res = await req('http://demo.localhost:5273/');
+    expect(res.status).toBe(503);
+  });
+
+  it('/api/public/tenant devuelve la empresa con URLs de media', async () => {
+    mockSupabase({ demo: demoRow });
+    const res = await req('http://demo.localhost:5273/api/public/tenant');
+    const body = (await res.json()) as ClientTenant;
+    expect(body.type).toBe('company');
+    if (body.type !== 'company') return;
+    expect(body.company.name).toBe('Barbería <Demo>');
+    expect(body.company.logoUrl).toBe('http://sb.test/storage/v1/object/public/media/c1/logo.webp');
+  });
+
+  it('la plataforma no consulta empresas', async () => {
+    const fetchMock = mockSupabase({});
+    const res = await req('http://localhost:5273/api/public/tenant');
+    expect(await res.json()).toEqual({ type: 'platform' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('/api/admin exige empresa y sesión', async () => {
+    mockSupabase({ demo: demoRow });
+    expect((await req('http://localhost:5273/api/admin/invite', { method: 'POST' })).status).toBe(404);
+    const noAuth = await req('http://demo.localhost:5273/api/admin/invite', { method: 'POST', body: '{}' });
+    expect(noAuth.status).toBe(401);
+    const bad = await req('http://demo.localhost:5273/api/admin/invite', {
+      method: 'POST',
+      headers: { authorization: 'Bearer jwt', 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'no-es-correo', role: 'staff' }),
+    });
+    expect(bad.status).toBe(400);
+    expect(((await bad.json()) as { message: string }).message).toBe('Escribe un correo válido');
+  });
+
+  it('/api/superadmin solo existe en la plataforma y exige sesión', async () => {
+    mockSupabase({ demo: demoRow });
+    expect((await req('http://demo.localhost:5273/api/superadmin/companies', { method: 'POST' })).status).toBe(404);
+    expect((await req('http://localhost:5273/api/superadmin/companies', { method: 'POST' })).status).toBe(401);
+  });
+});

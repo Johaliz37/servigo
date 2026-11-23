@@ -3,3 +3,5 @@
 SUPABASE_SECRET_KEY=sb_secret_xxx
 # Clave de prueba de Turnstile que siempre valida (https://developers.cloudflare.com/turnstile/troubleshooting/testing/).
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+# Clave pública (PUBLISHABLE_KEY de `pnpm db:start`). El Worker la usa con el JWT del usuario para que aplique RLS.
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx

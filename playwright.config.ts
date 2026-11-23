@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Los E2E se escriben desde la fase 09; aquí solo queda la configuración.
+// E2E contra `pnpm dev` + Supabase local con seed. En CI llegan con la fase 04/09.
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -11,7 +11,13 @@ export default defineConfig({
     baseURL: 'http://demo.localhost:5273',
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // Local: `PW_CHANNEL=msedge` usa el Edge instalado en vez de descargar Chromium.
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'], ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}) },
+    },
+  ],
   webServer: {
     command: 'pnpm dev',
     url: 'http://localhost:5273/api/health',

@@ -1,17 +1,37 @@
-import { getTenant } from '@client/lib/tenant';
+import { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider } from 'react-router/dom';
+import type { ClientTenant } from '@shared/tenant';
+import { Toaster } from '@client/components/ui/sonner';
+import { createRouter } from './router';
+import { TenantProvider } from './tenant-context';
 
-// Página temporal de la fase 01: muestra el tenant resuelto por el Worker.
-export function App() {
-  const tenant = getTenant();
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        refetchOnWindowFocus: false,
+        // Errores de permisos o datos no se arreglan reintentando.
+        retry: (count, error) => {
+          const code = (error as { code?: string }).code;
+          return count < 2 && code !== '42501' && code !== 'PGRST301';
+        },
+      },
+    },
+  });
+}
+
+export function App({ tenant }: { tenant: ClientTenant }) {
+  const [queryClient] = useState(createQueryClient);
+  const [router] = useState(() => createRouter(tenant));
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-2 p-6 text-center">
-      {tenant.type === 'company' && <h1 className="text-3xl font-semibold">Tenant: {tenant.slug}</h1>}
-      {tenant.type === 'platform' && <h1 className="text-3xl font-semibold">Plataforma</h1>}
-      {tenant.type !== 'company' && tenant.type !== 'platform' && (
-        <h1 className="text-3xl font-semibold">Sitio no encontrado</h1>
-      )}
-      <p className="text-sm text-muted-foreground">Servigo · ruta {window.location.pathname}</p>
-    </main>
+    <TenantProvider tenant={tenant}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster position="top-right" closeButton />
+      </QueryClientProvider>
+    </TenantProvider>
   );
 }

@@ -1322,10 +1322,29 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      accept_invitation: { Args: { p_token: string }; Returns: Json };
       can_access_branch: { Args: { p_branch: string; p_company: string }; Returns: boolean };
+      check_slug: { Args: { p_slug: string }; Returns: string };
       company_storage_usage: { Args: { p_company: string }; Returns: number };
+      console_companies: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          bookings_this_month: number;
+          branches_count: number;
+          created_at: string;
+          id: string;
+          name: string;
+          slug: string;
+          status: Database['public']['Enums']['company_status'];
+        }[];
+      };
+      create_company: {
+        Args: { p_currency?: string; p_name: string; p_owner_email: string; p_slug: string; p_timezone?: string };
+        Returns: Json;
+      };
       generate_booking_code: { Args: Record<PropertyKey, never>; Returns: string };
       get_company_by_slug: { Args: { p_slug: string }; Returns: Json };
+      get_invitation: { Args: { p_token: string }; Returns: Json };
       has_company_role: {
         Args: { p_company: string; p_roles?: Database['public']['Enums']['member_role'][] };
         Returns: boolean;
@@ -1333,7 +1352,20 @@ export type Database = {
       is_hex_color: { Args: { p_color: string }; Returns: boolean };
       is_platform_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_valid_timezone: { Args: { p_tz: string }; Returns: boolean };
+      list_company_members: {
+        Args: { p_company: string };
+        Returns: {
+          branch_ids: string[];
+          created_at: string;
+          email: string;
+          id: string;
+          last_sign_in_at: string;
+          role: Database['public']['Enums']['member_role'];
+          user_id: string;
+        }[];
+      };
       ping: { Args: Record<PropertyKey, never>; Returns: string };
+      slug_status: { Args: { p_slug: string }; Returns: string };
       try_uuid: { Args: { p_value: string }; Returns: string };
     };
     Enums: {
