@@ -17,7 +17,7 @@ El plan de trabajo está en [docs/plan/README.md](docs/plan/README.md).
 ```sh
 pnpm install
 cp .env.example .env.local        # completar con lo que imprime db:start
-cp .dev.vars.example .dev.vars    # completar SUPABASE_SECRET_KEY
+cp .dev.vars.example .dev.vars    # completar SUPABASE_SECRET_KEY y SUPABASE_PUBLISHABLE_KEY
 pnpm db:start                     # Supabase en Docker
 pnpm dev                          # app + Worker
 ```
@@ -26,12 +26,38 @@ pnpm dev                          # app + Worker
 | ------------------------------------- | ----------------------------------------------------- |
 | http://localhost:5273                 | Plataforma Servigo (local)                            |
 | http://demo.localhost:5273            | Sitio de la empresa `demo`                            |
+| http://demo.localhost:5273/admin      | Panel de la empresa (login)                           |
+| http://localhost:5273/console         | Consola del superadmin                                |
 | http://localhost:5273/?tenant=demo    | Alternativa si el navegador no resuelve `*.localhost` |
 | http://demo.localhost:5273/api/health | Salud del Worker                                      |
 | http://127.0.0.1:54423                | Supabase Studio                                       |
 | http://127.0.0.1:54424                | Mailpit (correos locales)                             |
 
 Los puertos (5273 y 544xx) no son los de por defecto, para convivir con otros proyectos Vite y Supabase en la misma máquina.
+
+### Usuarios de prueba (solo local)
+
+El seed crea estos usuarios, todos con la contraseña `Servigo123!`:
+
+- `superadmin@servigo.local`: consola (`http://localhost:5273/console`).
+- `owner@demo.local`, `admin@demo.local`, `staff@demo.local`: empresa `demo` (staff solo en la sede Centro).
+- `owner@spa.local`: empresa `spa`.
+
+Los correos (invitaciones, recuperación de contraseña) llegan a Mailpit.
+
+### Primer superadmin (producción)
+
+El registro público está cerrado: las cuentas nacen por invitación. Para el primer operador:
+
+1. Supabase Dashboard → Authentication → Users → **Invite user** con su correo (o _Add user_ con contraseña).
+2. SQL Editor:
+
+   ```sql
+   insert into public.platform_admins (user_id)
+   select id from auth.users where email = 'operador@ejemplo.com';
+   ```
+
+3. Entra en `https://servigo.roquintech.com/console` y crea las empresas desde ahí: cada alta crea la sede principal e invita al owner por correo.
 
 ### Opción Docker para la app
 
@@ -46,11 +72,12 @@ Si prefieres no instalar Node, `docker compose up` corre la app en un contenedor
 | `pnpm lint` / `pnpm format`              | ESLint / Prettier                                                                |
 | `pnpm typecheck`                         | TypeScript (cliente, Worker y config)                                            |
 | `pnpm test`                              | Tests unitarios (Vitest)                                                         |
-| `pnpm e2e`                               | Tests E2E (Playwright)                                                           |
+| `pnpm e2e`                               | Tests E2E (Playwright; `PW_CHANNEL=msedge` usa Edge)                             |
 | `pnpm db:start` / `db:stop` / `db:reset` | Supabase local                                                                   |
 | `pnpm db:test`                           | Tests pgTAP                                                                      |
 | `pnpm db:types`                          | Regenera `src/shared/database.types.ts`                                          |
 | `pnpm cf:types`                          | Regenera `worker-configuration.d.ts` tras cambiar `wrangler.jsonc` o `.dev.vars` |
+| `pnpm analyze`                           | Build con `dist/stats.html` (qué entra en cada bundle)                           |
 
 ## Estructura
 

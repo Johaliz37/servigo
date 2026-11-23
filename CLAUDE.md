@@ -10,6 +10,7 @@ Regla de oro: **costo 0**. No introduzcas servicios de pago.
 
 - `pnpm db:start` y luego `pnpm dev` → http://demo.localhost:5273 (empresa) y http://localhost:5273 (plataforma)
 - Antes de cada PR: `pnpm lint && pnpm typecheck && pnpm test` y `pnpm db:test`
+- E2E local (con `pnpm dev` y la BD con seed): `PW_CHANNEL=msedge pnpm e2e`
 - Tras una migración: `pnpm db:types`. Tras tocar `wrangler.jsonc` o `.dev.vars`: `pnpm cf:types`
 - Migraciones nuevas: `pnpm exec supabase migration new <descripcion>`; nunca editar una ya aplicada en producción
 
