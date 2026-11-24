@@ -1,0 +1,76 @@
+name: backup
+
+# Backup semanal de producción (00 §8, D17). El repo es público y cualquiera puede descargar sus
+# artefactos: el volcado se cifra con `age` para la clave pública BACKUP_AGE_RECIPIENT y solo se
+# abre con la clave privada, que nunca está en GitHub. Restauración: docs/runbook.md.
+on:
+  schedule:
+    - cron: '0 7 * * 0' # domingos 07:00 UTC (02:00 en Bogotá)
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+    steps:
+      - name: Clave pública de cifrado
+        run: |
+          case "$BACKUP_AGE_RECIPIENT" in
+            age1*) ;;
+            *) echo "::error::BACKUP_AGE_RECIPIENT no es una clave pública age (age1…)"; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      - name: Volcar, comprimir y cifrar
+        run: |
+          set -euo pipefail
+          umask 077
+          work="$RUNNER_TEMP/dump"
+          mkdir -p "$work" "$RUNNER_TEMP/out"
+          trap 'rm -rf "$work"' EXIT
+          remote=(--remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD")
+          pnpm exec supabase db dump "${remote[@]}" --role-only -f "$work/roles.sql"
+          pnpm exec supabase db dump "${remote[@]}" -f "$work/schema.sql"
+          # Tablas internas de vectores de Storage: no se usan y `postgres` no puede escribirlas al restaurar.
+          pnpm exec supabase db dump "${remote[@]}" --data-only --use-copy \
+            -x storage.buckets_vectors,storage.vector_indexes -f "$work/data.sql"
+          ls -l "$work"
+          name="servigo-$(date -u +%Y%m%d-%H%M).tar.gz.age"
+          tar -C "$work" -czf - roles.sql schema.sql data.sql | age -r "$BACKUP_AGE_RECIPIENT" -o "$RUNNER_TEMP/out/$name"
+          # Comprobación: el artefacto debe ser un archivo age, nunca SQL en claro.
+          head -c 21 "$RUNNER_TEMP/out/$name" | grep -q '^age-encryption.org/v1' || { echo "::error::El backup no quedó cifrado"; exit 1; }
+          echo "BACKUP_NAME=$name" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.BACKUP_NAME }}
+          path: ${{ runner.temp }}/out/${{ env.BACKUP_NAME }}
+          retention-days: 90
+          if-no-files-found: error
+          # Ya va comprimido y cifrado.
+          compression-level: 0

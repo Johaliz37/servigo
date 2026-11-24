@@ -1,0 +1,19 @@
+name: keepalive
+
+# Supabase Free pausa el proyecto tras 7 días sin actividad (00 §8). Lunes y jueves a las 12:00 UTC
+# se llama a /api/health?db=1, que ejecuta el RPC `ping()`. Ojo: GitHub desactiva los cron de
+# repos públicos tras 60 días sin commits; ver docs/runbook.md.
+on:
+  schedule:
+    - cron: '0 12 * * 1,4'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping a la BD
+        run: curl -fsS --retry 5 --retry-all-errors --retry-delay 20 "https://servigo.roquintech.com/api/health?db=1"

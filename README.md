@@ -45,19 +45,11 @@ El seed crea estos usuarios, todos con la contraseña `Servigo123!`:
 
 Los correos (invitaciones, recuperación de contraseña) llegan a Mailpit.
 
-### Primer superadmin (producción)
+### Producción
 
-El registro público está cerrado: las cuentas nacen por invitación. Para el primer operador:
-
-1. Supabase Dashboard → Authentication → Users → **Invite user** con su correo (o _Add user_ con contraseña).
-2. SQL Editor:
-
-   ```sql
-   insert into public.platform_admins (user_id)
-   select id from auth.users where email = 'operador@ejemplo.com';
-   ```
-
-3. Entra en `https://servigo.roquintech.com/console` y crea las empresas desde ahí: cada alta crea la sede principal e invita al owner por correo.
+- Plataforma: https://servigo.roquintech.com (consola en `/console`); empresas en `https://{slug}.roquintech.com`.
+- Se despliega sola al fusionar en `main` (workflow `deploy`: migraciones, build, Worker `servigo-production` y smoke test). Nunca se despliega desde una máquina local.
+- Operación (revertir, rotar secretos, backups y restauración, superadmin, DNS): [docs/runbook.md](docs/runbook.md).
 
 ### Opción Docker para la app
 

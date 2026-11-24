@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      # Un solo PR mensual con todo lo menor/parche; las mayores llegan por separado.
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Versiones fijadas en 00 D16 hasta que sus plugins las soporten.
+      - dependency-name: typescript
+        versions: ['>=6.1.0']
+      - dependency-name: eslint
+        versions: ['>=10.0.0']
+      - dependency-name: '@eslint/js'
+        versions: ['>=10.0.0']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
