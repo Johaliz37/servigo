@@ -21,7 +21,7 @@ Publicar Servigo en `https://servigo.roquintech.com` (plataforma) y `https://*.r
 - [x] Auth → deshabilitar registro público (`Allow new users to sign up = off`): solo invitaciones.
 - [x] (Opcional, gratis) SMTP personalizado con Resend Free para que las invitaciones/recuperaciones no se limiten: verificar `mail.roquintech.com` con registros DNS en Cloudflare.
 - [x] `supabase link --project-ref <ref>` y `supabase db push` inicial.
-- [ ] Ejecutar seed **mínimo** de producción (solo primer superadmin) — nunca el seed de demo.
+- [x] Ejecutar seed **mínimo** de producción (solo primer superadmin) — nunca el seed de demo.
 
 ### 2. Cloudflare
 - [x] DNS:
@@ -70,11 +70,11 @@ Publicar Servigo en `https://servigo.roquintech.com` (plataforma) y `https://*.r
 
 ## Criterios de aceptación
 
-- [ ] `https://servigo.roquintech.com` muestra la landing de Servigo; `https://servigo.roquintech.com/console` la consola superadmin; `https://www.roquintech.com` redirige a `roquintech.com`; `https://<empresa>.roquintech.com` el sitio de la empresa, todos con candado TLS válido.
-- [ ] Un PR con un test roto bloquea el merge.
+- [x] `https://servigo.roquintech.com` muestra la landing de Servigo; `https://servigo.roquintech.com/console` la consola superadmin; `https://www.roquintech.com` redirige a `roquintech.com`; `https://<empresa>.roquintech.com` el sitio de la empresa, todos con candado TLS válido.
+- [x] Un PR con un test roto bloquea el merge.
 - [x] Merge a `main` aplica migraciones y despliega sin intervención.
-- [ ] Workflow de backup genera un artefacto cifrado que solo se puede abrir con la clave privada (probar restauración en local).
-- [ ] Factura de Cloudflare, Supabase y GitHub: **0 USD**. Revisar que no se activó ningún add-on.
+- [x] Workflow de backup genera un artefacto cifrado que solo se puede abrir con la clave privada (probar restauración en local).
+- [x] Factura de Cloudflare, Supabase y GitHub: **0 USD**. Revisar que no se activó ningún add-on.
 
 ## Notas de ejecución
 
@@ -112,9 +112,14 @@ Publicar Servigo en `https://servigo.roquintech.com` (plataforma) y `https://*.r
   - `deploy` aplicó las 14 migraciones, publicó `servigo-production` y pasó el smoke test, tras la aprobación manual del entorno (*Required reviewers*, activado a propósito).
   - **Incidente:** la ruta `*.roquintech.com/*` capturó `monicarobles.roquintech.com`, que solo tenía Custom Domain. Un Custom Domain **no** gana sobre una ruta comodín. Se resolvió añadiendo la ruta `monicarobles.roquintech.com/*` → `photo-monica-robles`, y ahora el smoke test vigila esos hosts (`FOREIGN_HOSTS`).
   - La *Redirect Rule* tenía dos condiciones unidas con `and`, así que nunca se cumplía; se dejó una sola condición con los dos hosts.
-- **Pendiente tras el primer despliegue:**
-  - el primer superadmin (`docs/runbook.md` §6);
-  - los criterios de aceptación;
-  - HSTS.
+- **Cierre (24-nov-2026):**
+  - **Superadmin y empresa real.** Se creó el primer superadmin a mano, como indica `docs/runbook.md` §6, y se dio de alta una empresa real.
+    - La invitación del owner se envió a un correo equivocado. Corregirlo exigió borrar las cuentas sobrantes y cambiar `company_invitations.email`: el reenvío usa el correo de la invitación, no el de `auth.users`.
+    - El owner aceptó la invitación y entró a `/admin`. Miembros funciona.
+  - **Permisos de tabla.** En producción, `authenticated` no tenía `SELECT`, `INSERT`, `UPDATE` ni `DELETE` sobre `public`, porque el proyecto se creó sin exponer tablas nuevas a la API. La migración `explicit_table_grants` los concede y un test pgTAP los vigila.
+  - **Backup.** El primer backup de producción (17 KB) quedó cifrado: tiene la cabecera `age-encryption.org/v1` y ningún texto en claro. Se abrió con la clave privada y contiene `roles.sql`, `schema.sql` y `data.sql`.
+  - **Protección de `main`.** Exige `ci` y `db`. El entorno `production` quedó sin *Required reviewers*: si no, el backup semanal se quedaría esperando aprobación.
+  - **Facturación.** Revisada en Cloudflare, Supabase y Resend: 0 USD.
+- **Pendiente:** HSTS (Cloudflare → SSL/TLS → Edge Certificates), tras unos días sin incidencias.
 - **Pendiente en otras fases:** `Cache-Control` de las imágenes de `media` y CSP. Se verifican cuando exista la subida de imágenes (fase 05) y las cabeceras de seguridad (fase 13).
 - **Omitidos (opcionales):** proyecto staging y previews por PR.

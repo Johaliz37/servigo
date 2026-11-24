@@ -235,6 +235,7 @@ La zona la comparten todos los productos de Roquintech y el correo corporativo. 
   - Remitente `no-reply@mail.roquintech.com`.
 - **Emails → Templates**: _Invite_, _Magic Link_ y _Reset Password_ con el contenido de `supabase/templates/*.html` y los asuntos de `config.toml`. Si cambias una plantilla en el repo, cópiala aquí.
 - **Rate Limits**: emails por hora en 30.
+- **Data API**: el proyecto no expone tablas nuevas automáticamente (opción por defecto de Supabase). No importa: los permisos de tabla los conceden las migraciones (`explicit_table_grants`) y RLS decide las filas. Cada tabla nueva hereda esos permisos por los *default privileges*; el test `fase04_table_grants` falla si alguna queda sin ellos.
 - **Token de CI (`github-servigo`)**:
   - lectura y escritura: _Database_ y _Migrations_;
   - lectura: _Project Settings_, _Advisors_, _API Keys_, _Auth Config_, _Data API Config_, _Database Config_, _Connection Pooling_ y _Storage Config_.
