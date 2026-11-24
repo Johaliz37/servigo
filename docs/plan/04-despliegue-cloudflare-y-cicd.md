@@ -20,7 +20,7 @@ Publicar Servigo en `https://servigo.roquintech.com` (plataforma) y `https://*.r
 - [x] Auth → URL Configuration: `Site URL = https://servigo.roquintech.com`; *Redirect URLs*: `https://*.roquintech.com/**`.
 - [x] Auth → deshabilitar registro público (`Allow new users to sign up = off`): solo invitaciones.
 - [x] (Opcional, gratis) SMTP personalizado con Resend Free para que las invitaciones/recuperaciones no se limiten: verificar `mail.roquintech.com` con registros DNS en Cloudflare.
-- [ ] `supabase link --project-ref <ref>` y `supabase db push` inicial.
+- [x] `supabase link --project-ref <ref>` y `supabase db push` inicial.
 - [ ] Ejecutar seed **mínimo** de producción (solo primer superadmin) — nunca el seed de demo.
 
 ### 2. Cloudflare
@@ -72,7 +72,7 @@ Publicar Servigo en `https://servigo.roquintech.com` (plataforma) y `https://*.r
 
 - [ ] `https://servigo.roquintech.com` muestra la landing de Servigo; `https://servigo.roquintech.com/console` la consola superadmin; `https://www.roquintech.com` redirige a `roquintech.com`; `https://<empresa>.roquintech.com` el sitio de la empresa, todos con candado TLS válido.
 - [ ] Un PR con un test roto bloquea el merge.
-- [ ] Merge a `main` aplica migraciones y despliega sin intervención.
+- [x] Merge a `main` aplica migraciones y despliega sin intervención.
 - [ ] Workflow de backup genera un artefacto cifrado que solo se puede abrir con la clave privada (probar restauración en local).
 - [ ] Factura de Cloudflare, Supabase y GitHub: **0 USD**. Revisar que no se activó ningún add-on.
 
@@ -108,10 +108,12 @@ Publicar Servigo en `https://servigo.roquintech.com` (plataforma) y `https://*.r
     - Los archivos de Storage no entran en el backup (`docs/runbook.md` §8).
   - **Slugs reservados.** Migración `reserve_existing_subdomains` con `monicarobles`, `enterpriseenrollment`, `enterpriseregistration`, `lyncdiscover`, `sip` y `msoid`, más su test pgTAP: 183 asserts en total.
   - **Dominio raíz.** `roquintech.com` y `www` van a `servigo.roquintech.com` con una *Redirect Rule* (no a `roquintech.com`, que aún no existe).
+- **Primer despliegue (24-nov-2026):**
+  - `deploy` aplicó las 14 migraciones, publicó `servigo-production` y pasó el smoke test, tras la aprobación manual del entorno (*Required reviewers*, activado a propósito).
+  - **Incidente:** la ruta `*.roquintech.com/*` capturó `monicarobles.roquintech.com`, que solo tenía Custom Domain. Un Custom Domain **no** gana sobre una ruta comodín. Se resolvió añadiendo la ruta `monicarobles.roquintech.com/*` → `photo-monica-robles`, y ahora el smoke test vigila esos hosts (`FOREIGN_HOSTS`).
+  - La *Redirect Rule* tenía dos condiciones unidas con `and`, así que nunca se cumplía; se dejó una sola condición con los dos hosts.
 - **Pendiente tras el primer despliegue:**
-  - el primer `db push`, que lo hace `deploy`;
   - el primer superadmin (`docs/runbook.md` §6);
-  - añadir el check `db` a la protección de `main`;
   - los criterios de aceptación;
   - HSTS.
 - **Pendiente en otras fases:** `Cache-Control` de las imágenes de `media` y CSP. Se verifican cuando exista la subida de imágenes (fase 05) y las cabeceras de seguridad (fase 13).
