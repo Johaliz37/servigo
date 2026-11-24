@@ -32,3 +32,34 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  # Base de datos (fase 04): migraciones desde cero + seed, pgTAP y linter de plpgsql.
+  db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Solo lo que usan migraciones y tests: Postgres, Auth (esquema auth), Storage (buckets) y PostgREST.
+      - name: Supabase local
+        run: pnpm exec supabase start -x realtime,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - run: pnpm exec supabase db reset
+      - run: pnpm exec supabase test db
+      - run: pnpm exec supabase db lint --fail-on error
+
+      # Los tipos generados deben estar al día con las migraciones.
+      - name: Tipos de la BD al día
+        run: |
+          pnpm exec supabase gen types typescript --local > src/shared/database.types.ts
+          pnpm exec prettier --write src/shared/database.types.ts
+          git diff --exit-code src/shared/database.types.ts

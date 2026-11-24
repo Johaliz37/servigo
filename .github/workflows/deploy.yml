@@ -1,0 +1,116 @@
+name: deploy
+
+# Producción (fase 04). Corre cuando `ci` termina en verde sobre un push a `main`
+# (es decir, tras fusionar un PR), o a mano desde Actions → deploy → Run workflow.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# Nunca dos despliegues a la vez, y uno en curso no se cancela a medias.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://servigo.roquintech.com
+    env:
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      PLATFORM_URL: https://servigo.roquintech.com
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # El commit que validó `ci`, no lo que haya en main en este momento.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Configuración completa
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+        run: |
+          missing=0
+          for name in SUPABASE_PROJECT_REF SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD CLOUDFLARE_API_TOKEN \
+                      CLOUDFLARE_ACCOUNT_ID SUPABASE_SECRET_KEY TURNSTILE_SECRET_KEY \
+                      VITE_SUPABASE_PUBLISHABLE_KEY VITE_TURNSTILE_SITE_KEY; do
+            if [ -z "${!name}" ]; then echo "::error::Falta $name en el entorno production"; missing=1; fi
+          done
+          # wrangler.jsonc (env.production.vars.SUPABASE_URL) debe apuntar al mismo proyecto.
+          if ! grep -q "https://${SUPABASE_PROJECT_REF}.supabase.co" wrangler.jsonc; then
+            echo "::error::SUPABASE_URL de wrangler.jsonc no coincide con SUPABASE_PROJECT_REF"; missing=1
+          fi
+          exit $missing
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # 1. Migraciones primero: el código nuevo puede depender de ellas (nunca el seed de demo).
+      - name: Migraciones (supabase db push)
+        run: pnpm exec supabase db push --remote="$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" --skip-vault --yes
+
+      # 2. Build con el entorno `production` de wrangler.jsonc y las claves públicas del cliente.
+      - name: Compilar
+        run: pnpm build
+        env:
+          CLOUDFLARE_ENV: production
+          VITE_SUPABASE_URL: https://${{ vars.SUPABASE_PROJECT_REF }}.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+
+      # 3. Worker + secretos en la misma versión (el archivo vive solo durante este paso).
+      - name: Desplegar Worker
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          umask 077
+          secrets_file="$RUNNER_TEMP/worker-secrets.json"
+          trap 'rm -f "$secrets_file"' EXIT
+          jq -n \
+            --arg secret "$SUPABASE_SECRET_KEY" \
+            --arg publishable "$SUPABASE_PUBLISHABLE_KEY" \
+            --arg turnstile "$TURNSTILE_SECRET_KEY" \
+            '{SUPABASE_SECRET_KEY: $secret, SUPABASE_PUBLISHABLE_KEY: $publishable, TURNSTILE_SECRET_KEY: $turnstile}' \
+            > "$secrets_file"
+          pnpm exec wrangler deploy --secrets-file "$secrets_file"
+
+      # 4. Humo: el Worker responde, llega a la BD con la publishable key y resuelve tenants con la secret key.
+      - name: Smoke test
+        run: |
+          check() { # url, código esperado
+            for i in $(seq 1 12); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$1" || true)
+              [ "$code" = "$2" ] && { echo "ok $2 $1"; return 0; }
+              echo "intento $i: $1 → $code (esperado $2)"; sleep 5
+            done
+            echo "::error::$1 respondió $code, se esperaba $2"; return 1
+          }
+          check "$PLATFORM_URL/api/health?db=1" 200
+          check "$PLATFORM_URL/" 200
+          check "https://smoke-no-existe.roquintech.com/api/health" 200
+          check "https://smoke-no-existe.roquintech.com/" 404

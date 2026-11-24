@@ -19,7 +19,6 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "deploy": "pnpm build && wrangler deploy",
     "analyze": "vite build --mode analyze",
     "lint": "eslint .",
     "format": "prettier --write .",
