@@ -27,7 +27,7 @@ const authRoutes = (base: 'admin' | 'console'): RouteObject => ({
 
 const adminPages = () => import('@client/features/admin/pages');
 
-// Secciones de las fases 05–12: muestran "En construcción" hasta que se implementen.
+// Secciones de las fases 06–12: muestran "En construcción" hasta que se implementen.
 const PLACEHOLDER_PATHS = [
   'reservas',
   'clientes',
@@ -35,14 +35,18 @@ const PLACEHOLDER_PATHS = [
   'catalogo/servicios',
   'catalogo/productos',
   'formularios',
-  'sedes',
-  'contenido/acerca',
-  'contenido/patrocinadores',
-  'contenido/redes',
-  'contenido/footer',
-  'configuracion/empresa',
-  'configuracion/reservas',
 ];
+
+// Fase 05: empresa, sedes y contenido del sitio.
+const CONTENT_ROUTES: RouteObject[] = [
+  { path: 'sedes', lazy: () => import('@client/features/branches/BranchesPage') },
+  { path: 'contenido/acerca', lazy: () => import('@client/features/content/AboutPage') },
+  { path: 'contenido/patrocinadores', lazy: () => import('@client/features/content/SponsorsPage') },
+  { path: 'contenido/redes', lazy: () => import('@client/features/content/SocialLinksPage') },
+  { path: 'contenido/footer', lazy: () => import('@client/features/content/FooterPage') },
+  { path: 'configuracion/empresa', lazy: () => import('@client/features/settings/CompanyProfilePage') },
+  { path: 'configuracion/reservas', lazy: () => import('@client/features/settings/BookingSettingsPage') },
+].map((route) => ({ ...route, ErrorBoundary: RouteError }));
 
 const companyRoutes: RouteObject[] = [
   {
@@ -75,6 +79,7 @@ const companyRoutes: RouteObject[] = [
         lazy: async () => ({ Component: (await adminPages()).SectionPlaceholder }),
         ErrorBoundary: RouteError,
       })),
+      ...CONTENT_ROUTES,
       {
         path: 'configuracion/miembros',
         lazy: () => import('@client/features/members/MembersPage'),
