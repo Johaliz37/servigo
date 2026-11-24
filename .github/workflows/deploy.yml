@@ -114,3 +114,13 @@ jobs:
           check "$PLATFORM_URL/" 200
           check "https://smoke-no-existe.roquintech.com/api/health" 200
           check "https://smoke-no-existe.roquintech.com/" 404
+
+          # Sitios de la zona que NO son de Servigo: deben tener su propia ruta de Worker más específica.
+          # Si /api/health responde el JSON de Servigo, la ruta comodín los está capturando (runbook §9).
+          FOREIGN_HOSTS="monicarobles.roquintech.com"
+          for host in $FOREIGN_HOSTS; do
+            if curl -s "https://$host/api/health" | grep -q '"platform":'; then
+              echo "::error::$host lo está respondiendo Servigo: falta su ruta $host/* hacia su propio Worker"; exit 1
+            fi
+            echo "ok $host no pasa por Servigo"
+          done

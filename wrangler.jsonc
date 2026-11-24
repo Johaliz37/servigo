@@ -27,7 +27,8 @@
     // (con el plugin de Vite, `wrangler deploy` usa la config ya resuelta y no acepta `--env`).
     // El Worker se publica como `servigo-production`. `vars`, `routes` y `ratelimits` no se heredan.
     "production": {
-      // Rutas más específicas de otros productos de Roquintech (y los Custom Domains) ganan sobre el comodín.
+      // Rutas más específicas de otros productos de Roquintech ganan sobre el comodín. Un Custom Domain NO gana:
+      // todo sitio proxied de la zona necesita su propia ruta `host/*` (docs/runbook.md §9).
       "routes": [{ "pattern": "*.roquintech.com/*", "zone_name": "roquintech.com" }],
       "vars": {
         "ROOT_DOMAIN": "roquintech.com",

@@ -210,14 +210,15 @@ La zona la comparten todos los productos de Roquintech y el correo corporativo. 
 | MX, TXT SPF raíz, `autodiscover`, `enterpriseenrollment`, `enterpriseregistration` | Microsoft 365 (correo de Roquintech)                 | Sí: es el correo corporativo                           |
 | `resend._domainkey.mail`, `send.mail`, `rsend.mail`                         | Resend (correos de Servigo)                          | Sin ellos no salen invitaciones                        |
 | `_dmarc`                                                                    | DMARC `p=none`                                       | Endurecer solo tras revisar informes                   |
-| `monicarobles` (Worker)                                                     | Otro sitio, como Custom Domain                       | Gana sobre el comodín                                  |
+| `monicarobles` (Worker) | Otro sitio: Custom Domain **y** ruta `monicarobles.roquintech.com/*` → `photo-monica-robles` | Sin la ruta, lo captura el comodín de Servigo |
 
 - **Redirect Rule** «apex y www a servigo»: `roquintech.com` y `www.roquintech.com` → `https://servigo.roquintech.com` (301). Se quita cuando exista la web corporativa.
 - **SSL/TLS** en _Full (strict)_ y _Always Use HTTPS_. HSTS se activa cuando todo esté estable (6 meses, _Include subdomains_). Es difícil de deshacer.
 - **Producto o sitio nuevo en un subdominio**:
   1. Comprueba que ninguna empresa use ese slug: `select 1 from companies where slug = 'x'`.
   2. Reserva el nombre con una migración: `insert into reserved_slugs (slug, reason) values ('x', 'roquintech_product')`.
-  3. Crea su ruta específica o su Custom Domain.
+  3. Crea **siempre** una ruta específica `x.roquintech.com/*` hacia su Worker (Workers Routes de la zona). Un Custom Domain por sí solo **no** basta: la ruta comodín de Servigo gana sobre él y el sitio mostraría «Empresa no encontrada» (pasó con `monicarobles` el 24-nov-2026).
+  4. Añade el host a `FOREIGN_HOSTS` en `.github/workflows/deploy.yml` para que el smoke test lo vigile.
 - Universal SSL cubre un solo nivel: `a.roquintech.com` sí, `a.b.roquintech.com` no.
 
 ## 10. Configuración que no está en el repo
