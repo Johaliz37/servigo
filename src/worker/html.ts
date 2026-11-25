@@ -35,8 +35,20 @@ export interface HeadContent {
   tags: string;
 }
 
-/** `<title>`, descripción, Open Graph, favicon y `window.__TENANT__` para la ruta `path`. */
-export function buildHead(tenant: ClientTenant, path: string): HeadContent {
+/** Meta propios de una página pública (ficha de servicio, sede), ya resueltos por el Worker. */
+export interface PageMeta {
+  title: string;
+  description?: string | null;
+  /** URL absoluta de la imagen para compartir (`og:image`). */
+  image?: string | null;
+}
+
+/**
+ * `<title>`, descripción, Open Graph, favicon y `window.__TENANT__` para la ruta `path`.
+ * `page` reemplaza título, descripción e imagen (fase 09: al compartir un servicio por
+ * WhatsApp se ve su nombre y su foto).
+ */
+export function buildHead(tenant: ClientTenant, path: string, page?: PageMeta | null): HeadContent {
   const isPrivate = path.startsWith('/admin') || path.startsWith('/console');
   let title: string;
   let description: string;
@@ -53,6 +65,11 @@ export function buildHead(tenant: ClientTenant, path: string): HeadContent {
     image = c.logoUrl;
     favicon = c.faviconUrl ?? c.logoUrl;
     themeColor = c.primaryColor;
+    if (page && !isPrivate) {
+      title = page.title;
+      description = page.description?.trim() || description;
+      image = page.image ?? image;
+    }
   } else {
     siteName = 'Servigo';
     title = path.startsWith('/console') ? 'Consola · Servigo' : PLATFORM_TITLE;
@@ -69,7 +86,7 @@ export function buildHead(tenant: ClientTenant, path: string): HeadContent {
     meta('property', 'og:title', title),
     meta('property', 'og:description', description),
     image ? meta('property', 'og:image', image) : '',
-    meta('name', 'twitter:card', 'summary'),
+    meta('name', 'twitter:card', page?.image ? 'summary_large_image' : 'summary'),
     themeColor ? meta('name', 'theme-color', themeColor) : '',
     favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
     isPrivate ? meta('name', 'robots', 'noindex, nofollow') : '',

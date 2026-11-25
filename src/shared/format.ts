@@ -3,19 +3,7 @@ import { TZDate } from '@date-fns/tz';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 
-/** Monedas que en la práctica no usan decimales (Intl dice 2 para COP, pero nadie cobra centavos). */
-export const ZERO_DECIMAL_CURRENCIES: readonly string[] = ['COP', 'CLP', 'PYG', 'JPY', 'KRW'];
-
-export function formatMoney(amount: number, currency = 'COP', locale = 'es-CO'): string {
-  // COP y similares no usan decimales en la práctica; el resto, los de la moneda.
-  const zeroDecimal = ZERO_DECIMAL_CURRENCIES.includes(currency);
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: zeroDecimal ? 0 : undefined,
-    maximumFractionDigits: zeroDecimal ? 0 : undefined,
-  }).format(amount);
-}
+export { formatMoney, ZERO_DECIMAL_CURRENCIES } from './money';
 
 /**
  * Fecha/hora en la zona horaria IANA de la sede (00 §6: la UI muestra la hora de la

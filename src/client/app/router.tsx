@@ -65,9 +65,21 @@ const companyRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        lazy: async () => ({ Component: (await import('@client/features/public/PublicLayout')).HomePage }),
+        lazy: async () => ({ Component: (await import('@client/features/public/HomePage')).HomePage }),
       },
-      ...['acerca', 'mis-reservas', 's/:branchSlug/*', 'reserva/:code'].map((path) => ({
+      // Fase 09: sede, fichas y «Acerca de».
+      { path: 's/:branchSlug', lazy: () => import('@client/features/public/BranchPage') },
+      {
+        path: 's/:branchSlug/servicios/:id',
+        lazy: async () => ({ Component: (await import('@client/features/public/ItemPage')).ServicePage }),
+      },
+      {
+        path: 's/:branchSlug/productos/:id',
+        lazy: async () => ({ Component: (await import('@client/features/public/ItemPage')).ProductPage }),
+      },
+      { path: 'acerca', lazy: () => import('@client/features/public/AboutPage') },
+      // Fase 10: reserva y consulta.
+      ...['mis-reservas', 's/:branchSlug/reservar/*', 'reserva/:code'].map((path) => ({
         path,
         lazy: async () => ({ Component: (await import('@client/features/public/PublicLayout')).ComingSoonPage }),
       })),

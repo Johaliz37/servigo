@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { robotsTxt, sitemapXml } from '@shared/public-site';
 import type { ClientTenant } from '@shared/tenant';
 import type { AppEnv } from './env';
 import { buildHead } from './html';
@@ -7,6 +8,7 @@ import { adminRoutes } from './routes/admin';
 import { publicRoutes } from './routes/public';
 import { superadminRoutes } from './routes/superadmin';
 import { anonClient } from './supabase';
+import { loadSitemap, lookupPage } from './seo';
 import { tenantMiddleware } from './tenant';
 
 const app = new Hono<AppEnv>();
@@ -43,12 +45,32 @@ app.route('/api/superadmin', superadminRoutes);
 
 app.all('/api/*', (c) => apiError(c, 404, 'not_found', 'Ruta no encontrada'));
 
+// SEO por tenant (fase 09 §2).
+app.get('/robots.txt', (c) => {
+  const origin = new URL(c.req.url).origin;
+  return c.text(robotsTxt(origin, !!c.get('company')), 200, { 'cache-control': 'public, max-age=3600' });
+});
+
+app.get('/sitemap.xml', async (c) => {
+  const company = c.get('company');
+  if (!company) return c.text('Not found', 404);
+  const data = await loadSitemap(c.env, company);
+  if (!data) return c.text('Not found', 404);
+  return c.body(sitemapXml(new URL(c.req.url).origin, data), 200, {
+    'content-type': 'application/xml; charset=utf-8',
+    'cache-control': 'public, max-age=3600',
+  });
+});
+
 // Resto: SPA desde Static Assets con meta/SEO y `window.__TENANT__` (00 D8, fase 03 §1).
 app.all('*', async (c) => {
   const res = await c.env.ASSETS.fetch(c.req.raw);
   if (!res.headers.get('content-type')?.includes('text/html')) return res;
 
-  const head = buildHead(clientTenant(c), new URL(c.req.url).pathname);
+  const path = new URL(c.req.url).pathname;
+  const company = c.get('company');
+  const page = company ? await lookupPage(c.env, company, path) : { meta: null, status: 200 as const };
+  const head = buildHead(clientTenant(c), path, page.meta);
   const rewritten = new HTMLRewriter()
     .on('title', {
       element(el) {
@@ -66,7 +88,8 @@ app.all('*', async (c) => {
   const headers = new Headers(rewritten.headers);
   headers.set('cache-control', 'no-cache');
   headers.append('vary', 'Host');
-  return new Response(rewritten.body, { status: rewritten.status, headers });
+  const status = page.status === 404 && rewritten.status === 200 ? 404 : rewritten.status;
+  return new Response(rewritten.body, { status, headers });
 });
 
 export default app satisfies ExportedHandler<Env>;

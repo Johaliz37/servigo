@@ -62,3 +62,20 @@ export async function sendInvitationEmail(
   }
   return 'magic_link';
 }
+
+/**
+ * RPC con `fetch` directo y la secret key (sin crear un cliente de supabase-js por petición).
+ * Devuelve el JSON tal cual; `null` si la función devolvió null.
+ */
+export async function rpcJson<T>(env: Env, fn: string, args: Record<string, unknown>): Promise<T | null> {
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_SECRET_KEY,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) throw new UpstreamError(`${fn} ${res.status}`);
+  return (await res.json()) as T | null;
+}

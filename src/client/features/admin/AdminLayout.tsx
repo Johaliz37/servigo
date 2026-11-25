@@ -35,6 +35,7 @@ import { useMembership } from '@client/features/auth/membership';
 import { signOut, useSession } from '@client/features/auth/session';
 import { BranchProvider, useSelectedBranch } from './branch-context';
 import { ADMIN_NAV } from './nav';
+import { usePurgePublicOnSave } from './purge-public';
 import { RequireMember } from './RequireMember';
 
 const ALL = '__all__';
@@ -178,6 +179,7 @@ function AdminSidebar() {
 
 function AdminShell() {
   useSystemDarkMode();
+  usePurgePublicOnSave();
   return (
     <BranchProvider>
       <SidebarProvider>
