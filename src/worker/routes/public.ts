@@ -5,7 +5,7 @@ import { BRANCH_SLUG_REGEX } from '@shared/content';
 import { createMiddleware } from 'hono/factory';
 import type { AppEnv } from '../env';
 import { apiError, dbError, type Ctx } from '../http';
-import { PUBLIC_CACHE_CONTROL, publicReads, type PublicRead } from '../public-cache';
+import { PUBLIC_CACHE_CONTROL, publicReads, slotsVersion, type PublicRead } from '../public-cache';
 import { adminClient, UpstreamError } from '../supabase';
 import { edgeCache } from '../tenant';
 
@@ -42,7 +42,10 @@ publicRoutes.get('/slots', async (c) => {
   const { branch, service, from, to } = parsed.data;
 
   const cache = edgeCache();
-  const key = new Request(`https://slots-cache.servigo.internal/${company.id}/${branch}/${service}/${from}/${to}`);
+  const version = await slotsVersion(company.id, branch, service);
+  const key = new Request(
+    `https://slots-cache.servigo.internal/${company.id}/${branch}/${service}/v${version}/${from}/${to}`,
+  );
   const hit = await cache?.match(key);
   if (hit) return new Response(hit.body, hit);
 
@@ -101,6 +104,7 @@ publicRoutes.use('/site', requireCompany);
 publicRoutes.use('/branch/*', requireCompany);
 publicRoutes.use('/item/*', requireCompany);
 publicRoutes.use('/about', requireCompany);
+publicRoutes.use('/booking-form/*', requireCompany);
 
 publicRoutes.get('/site', (c) =>
   sendPublic(c, () => publicReads.site(c.env, c.get('company')!), 'Esta empresa no existe'),
@@ -128,4 +132,16 @@ publicRoutes.get('/about', (c) => {
   const slug = raw ? branchSlugParam.safeParse(raw) : null;
   if (slug && !slug.success) return apiError(c, 404, 'not_found', 'Esta sede no existe');
   return sendPublic(c, () => publicReads.about(c.env, c.get('company')!, slug?.data ?? null), 'Esta empresa no existe');
+});
+
+/** Lo que el asistente de reserva necesita para un servicio (fase 10): precio, complementos y campos. */
+publicRoutes.get('/booking-form/:branchSlug/:serviceId', (c) => {
+  const slug = branchSlugParam.safeParse(c.req.param('branchSlug'));
+  const id = z.uuid().safeParse(c.req.param('serviceId').toLowerCase());
+  if (!slug.success || !id.success) return apiError(c, 404, 'not_found', 'Este servicio no está disponible');
+  return sendPublic(
+    c,
+    () => publicReads.bookingForm(c.env, c.get('company')!, slug.data, id.data),
+    'Este servicio no está disponible',
+  );
 });
