@@ -4,6 +4,7 @@ import type { AppEnv } from './env';
 import { buildHead } from './html';
 import { apiError, type Ctx } from './http';
 import { adminRoutes } from './routes/admin';
+import { publicRoutes } from './routes/public';
 import { superadminRoutes } from './routes/superadmin';
 import { anonClient } from './supabase';
 import { tenantMiddleware } from './tenant';
@@ -36,6 +37,7 @@ app.get('/api/health', async (c) => {
 // Respaldo de `window.__TENANT__` si la página no pasó por el HTMLRewriter.
 app.get('/api/public/tenant', (c) => c.json(clientTenant(c), 200, { 'cache-control': 'no-store' }));
 
+app.route('/api/public', publicRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/superadmin', superadminRoutes);
 

@@ -1326,6 +1326,7 @@ export type Database = {
     };
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json };
+      apply_availability_plan: { Args: { p_plan: Json }; Returns: undefined };
       can_access_branch: { Args: { p_branch: string; p_company: string }; Returns: boolean };
       check_slug: { Args: { p_slug: string }; Returns: string };
       company_storage_usage: { Args: { p_company: string }; Returns: number };
@@ -1410,6 +1411,7 @@ export type Database = {
       generate_booking_code: { Args: Record<PropertyKey, never>; Returns: string };
       get_company_by_slug: { Args: { p_slug: string }; Returns: Json };
       get_invitation: { Args: { p_token: string }; Returns: Json };
+      get_slot_inputs: { Args: { p_branch: string; p_from: string; p_service: string; p_to: string }; Returns: Json };
       has_company_role: {
         Args: { p_company: string; p_roles?: Database['public']['Enums']['member_role'][] };
         Returns: boolean;
