@@ -3,7 +3,10 @@ import { defineConfig, devices } from '@playwright/test';
 // E2E contra `pnpm dev` + Supabase local con seed. En CI llegan con la fase 04/09.
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  // Un solo worker: todas las pruebas comparten la BD con seed (p. ej. fase05 y fase06 tocan la
+  // misma sede) y varias pestañas comprimiendo imágenes saturan el servidor de desarrollo.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'list',

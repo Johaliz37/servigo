@@ -14,5 +14,15 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     environment: 'node',
     // Los tests de componentes declaran `// @vitest-environment jsdom` en el archivo.
+    // `pnpm test:coverage` (CI): el módulo de precios exige > 95 % (criterio de la fase 06).
+    coverage: {
+      provider: 'v8',
+      include: ['src/shared/**/*.ts'],
+      exclude: ['src/shared/**/*.test.ts', 'src/shared/database.types.ts'],
+      reporter: ['text-summary', 'text'],
+      thresholds: {
+        'src/shared/pricing.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
+      },
+    },
   },
 });

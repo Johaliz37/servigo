@@ -66,3 +66,10 @@ Pasos con barra de progreso, estado en la URL (`?step=&date=&slot=`) y en `sessi
 - [ ] Búsqueda por código exige contacto coincidente; búsqueda por contacto no expone datos personales completos.
 - [ ] El total mostrado al cliente coincide al centavo con el guardado en BD.
 - [ ] La reserva aparece en el calendario y la bandeja de la empresa.
+
+> **Heredado de la fase 06 (D24).** `create_booking` calcula los precios con `effective_catalog(sede, now())` y `effective_addons(servicio, sede, now())`, nunca con fórmulas propias. Así coincide con `bookingTotals` de `pricing.ts`:
+> - el descuento de cada producto se aplica por unidad;
+> - `products_total` es antes de descuentos;
+> - `discount_total` suma servicio y productos.
+>
+> `effective_addons` ya filtra `allow_in_booking`, la disponibilidad en la sede y el stock, y limita la cantidad máxima al stock.

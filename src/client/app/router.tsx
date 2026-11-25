@@ -28,14 +28,18 @@ const authRoutes = (base: 'admin' | 'console'): RouteObject => ({
 const adminPages = () => import('@client/features/admin/pages');
 
 // Secciones de las fases 06–12: muestran "En construcción" hasta que se implementen.
-const PLACEHOLDER_PATHS = [
-  'reservas',
-  'clientes',
-  'calendario',
-  'catalogo/servicios',
-  'catalogo/productos',
-  'formularios',
-];
+const PLACEHOLDER_PATHS = ['reservas', 'clientes', 'calendario', 'formularios'];
+
+// Fase 06: catálogo (listados, ficha con pestañas y catálogo por sede).
+const catalogList = () => import('@client/features/catalog/CatalogListPage');
+const catalogEditor = () => import('@client/features/catalog/ItemEditorPage');
+const CATALOG_ROUTES: RouteObject[] = [
+  { path: 'catalogo/servicios', lazy: async () => ({ Component: (await catalogList()).ServicesPage }) },
+  { path: 'catalogo/servicios/:id', lazy: async () => ({ Component: (await catalogEditor()).ServiceEditorPage }) },
+  { path: 'catalogo/productos', lazy: async () => ({ Component: (await catalogList()).ProductsPage }) },
+  { path: 'catalogo/productos/:id', lazy: async () => ({ Component: (await catalogEditor()).ProductEditorPage }) },
+  { path: 'sedes/:id/catalogo', lazy: () => import('@client/features/branches/BranchCatalogPage') },
+].map((route) => ({ ...route, ErrorBoundary: RouteError }));
 
 // Fase 05: empresa, sedes y contenido del sitio.
 const CONTENT_ROUTES: RouteObject[] = [
@@ -80,6 +84,7 @@ const companyRoutes: RouteObject[] = [
         ErrorBoundary: RouteError,
       })),
       ...CONTENT_ROUTES,
+      ...CATALOG_ROUTES,
       {
         path: 'configuracion/miembros',
         lazy: () => import('@client/features/members/MembersPage'),

@@ -1345,6 +1345,68 @@ export type Database = {
         Args: { p_currency?: string; p_name: string; p_owner_email: string; p_slug: string; p_timezone?: string };
         Returns: Json;
       };
+      currency_digits: { Args: { p_currency: string }; Returns: number };
+      discount_amount: {
+        Args: {
+          p_base: number;
+          p_digits: number;
+          p_type: Database['public']['Enums']['discount_type'];
+          p_value: number;
+        };
+        Returns: number;
+      };
+      effective_addons: {
+        Args: { p_at?: string; p_branch: string; p_service: string };
+        Returns: {
+          base_price: number;
+          cover_alt: string;
+          cover_path: string;
+          currency: string;
+          discount_amount: number;
+          discount_ends_at: string;
+          discount_id: string;
+          discount_label: string;
+          discount_type: Database['public']['Enums']['discount_type'];
+          discount_value: number;
+          final_price: number;
+          item_id: string;
+          max_quantity: number;
+          name: string;
+          reference: string;
+          short_description: string;
+          stock: number;
+        }[];
+      };
+      effective_catalog: {
+        Args: { p_at?: string; p_branch: string };
+        Returns: {
+          allow_in_booking: boolean;
+          base_price: number;
+          buffer_after_minutes: number;
+          buffer_before_minutes: number;
+          capacity: number;
+          cover_alt: string;
+          cover_path: string;
+          currency: string;
+          description: string;
+          discount_amount: number;
+          discount_ends_at: string;
+          discount_id: string;
+          discount_label: string;
+          discount_type: Database['public']['Enums']['discount_type'];
+          discount_value: number;
+          duration_minutes: number;
+          final_price: number;
+          is_featured: boolean;
+          item_id: string;
+          kind: Database['public']['Enums']['catalog_kind'];
+          name: string;
+          reference: string;
+          short_description: string;
+          sort_order: number;
+          stock: number;
+        }[];
+      };
       generate_booking_code: { Args: Record<PropertyKey, never>; Returns: string };
       get_company_by_slug: { Args: { p_slug: string }; Returns: Json };
       get_invitation: { Args: { p_token: string }; Returns: Json };
@@ -1367,10 +1429,24 @@ export type Database = {
           user_id: string;
         }[];
       };
+      pick_discount: {
+        Args: {
+          p_at: string;
+          p_base: number;
+          p_branch: string;
+          p_digits: number;
+          p_discounts: Database['public']['Tables']['discounts']['Row'][];
+        };
+        Returns: {
+          amount: number;
+          discount_id: string;
+        }[];
+      };
       ping: { Args: Record<PropertyKey, never>; Returns: string };
       reorder_rows: { Args: { p_ids: string[]; p_table: string }; Returns: undefined };
       slug_status: { Args: { p_slug: string }; Returns: string };
       try_uuid: { Args: { p_value: string }; Returns: string };
+      upsert_catalog_item: { Args: { p_payload: Json }; Returns: string };
     };
     Enums: {
       availability_kind: 'open' | 'closed';
