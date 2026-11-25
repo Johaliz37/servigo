@@ -30,7 +30,7 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm test:coverage
       - run: pnpm build
 
   # Base de datos (fase 04): migraciones desde cero + seed, pgTAP y linter de plpgsql.

@@ -22,7 +22,7 @@ export const MEDIA_INPUT_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as co
 /** Antes de comprimir (una foto de móvil normal pesa 3–8 MB). */
 export const MEDIA_INPUT_MAX_BYTES = 15 * 1024 * 1024;
 
-export type MediaEntity = 'company' | 'branches' | 'about' | 'sponsors';
+export type MediaEntity = 'company' | 'branches' | 'about' | 'sponsors' | 'catalog';
 
 /** `{company}/{entidad}/{uuid}-{hash}.webp`: único por subida e inmutable (caché de 1 año). */
 export function mediaObjectPath(companyId: string, entity: MediaEntity, id: string, hash: string): string {

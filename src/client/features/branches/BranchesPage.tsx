@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { BuildingIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { BuildingIcon, ListChecksIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@client/components/ui/badge';
 import { Button } from '@client/components/ui/button';
@@ -40,6 +41,7 @@ export function Component() {
 
 function Branches() {
   const company = useCompany();
+  const navigate = useNavigate();
   const branches = useBranchesAdmin();
   const reorder = useReorder('branches', ['branches-admin', company.id]);
   const setActive = useUpdateBranch();
@@ -129,6 +131,11 @@ function Branches() {
                     <DropdownMenuItem onSelect={() => setEditing(branch)}>
                       <PencilIcon aria-hidden /> Editar
                     </DropdownMenuItem>
+                    {branch.own_catalog && (
+                      <DropdownMenuItem onSelect={() => navigate(`${branch.id}/catalogo`)}>
+                        <ListChecksIcon aria-hidden /> Catálogo de la sede
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem variant="destructive" disabled={lastActive} onSelect={() => setDeleting(branch)}>
                       <Trash2Icon aria-hidden /> Borrar
                     </DropdownMenuItem>

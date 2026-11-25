@@ -35,6 +35,12 @@ const PG_MESSAGES: Record<string, string> = {
   PGRST303: 'Tu sesión terminó. Inicia sesión de nuevo.',
 };
 
+/** Restricciones únicas con mensaje propio (el nombre viene en el mensaje de Postgres). */
+const CONSTRAINT_MESSAGES: Record<string, string> = {
+  catalog_items_company_id_reference_key: 'Ya existe otro ítem con esa referencia.',
+  branches_company_id_slug_key: 'Ya existe otra sede con esa dirección web.',
+};
+
 export const GENERIC_ERROR = 'Algo salió mal. Intenta de nuevo.';
 
 export function errorMessage(error: unknown): string {
@@ -50,6 +56,10 @@ export function errorMessage(error: unknown): string {
   if (e.code === 'P0001' && e.message) return e.message;
   // Triggers propios con mensaje en español (p. ej. slug reservado).
   if (e.code === '23514' && e.message && /[áéíóúñ]|reservado|debe/i.test(e.message)) return e.message;
+  if (e.code === '23505' && e.message) {
+    const known = Object.keys(CONSTRAINT_MESSAGES).find((name) => e.message?.includes(name));
+    if (known) return CONSTRAINT_MESSAGES[known] as string;
+  }
   if (e.code && PG_MESSAGES[e.code]) return PG_MESSAGES[e.code] as string;
   if (e.status === 429) return AUTH_MESSAGES.over_request_rate_limit as string;
   if (e.status === 401) return 'Tu sesión terminó. Inicia sesión de nuevo.';
