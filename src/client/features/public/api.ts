@@ -2,7 +2,7 @@
  * Datos del sitio público (fase 09): `fetch` al Worker (`/api/public/*`, caché de 60 s), sin
  * supabase-js. El tenant lo resuelve el Worker por el Host.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import type { PublicAboutSection, PublicBranch, PublicItemDetail, PublicSite } from '@shared/public-site';
 import { ApiRequestError } from '@client/lib/api-error';
 import { useCompany } from '@client/app/tenant-context';
@@ -71,4 +71,21 @@ export function usePublicAbout() {
     staleTime: STALE,
     retry,
   });
+}
+
+/**
+ * Siembra la caché con los datos que el Worker incrustó en el HTML (`window.__PUBLIC__`,
+ * claves de `publicDataKey`): la primera página pinta sin esperar a la API. Se usa una vez.
+ */
+export function seedPublicData(queryClient: QueryClient, companyId: string): void {
+  const w = window as { __PUBLIC__?: Record<string, unknown> };
+  const data = w.__PUBLIC__;
+  if (!data) return;
+  delete w.__PUBLIC__;
+  for (const [key, value] of Object.entries(data)) {
+    const [type, ...rest] = key.split(':');
+    if (type === 'site' || type === 'branch' || type === 'item') {
+      queryClient.setQueryData(['public', companyId, type, ...rest], value);
+    }
+  }
 }

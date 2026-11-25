@@ -46,9 +46,15 @@ export interface PageMeta {
 /**
  * `<title>`, descripción, Open Graph, favicon y `window.__TENANT__` para la ruta `path`.
  * `page` reemplaza título, descripción e imagen (fase 09: al compartir un servicio por
- * WhatsApp se ve su nombre y su foto).
+ * WhatsApp se ve su nombre y su foto). `initialData` va a `window.__PUBLIC__`: la SPA pinta sin
+ * esperar a la API.
  */
-export function buildHead(tenant: ClientTenant, path: string, page?: PageMeta | null): HeadContent {
+export function buildHead(
+  tenant: ClientTenant,
+  path: string,
+  page?: PageMeta | null,
+  initialData?: Record<string, unknown>,
+): HeadContent {
   const isPrivate = path.startsWith('/admin') || path.startsWith('/console');
   let title: string;
   let description: string;
@@ -91,6 +97,9 @@ export function buildHead(tenant: ClientTenant, path: string, page?: PageMeta | 
     favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
     isPrivate ? meta('name', 'robots', 'noindex, nofollow') : '',
     `<script>window.__TENANT__=${inlineJson(tenant)}</script>`,
+    initialData && Object.keys(initialData).length
+      ? `<script>window.__PUBLIC__=${inlineJson(initialData)}</script>`
+      : '',
   ]
     .filter(Boolean)
     .join('');

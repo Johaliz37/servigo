@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router/dom';
 import type { ClientTenant } from '@shared/tenant';
+import { seedPublicData } from '@client/features/public/api';
 import { createRouter } from './router';
 import { TenantProvider } from './tenant-context';
 
@@ -31,7 +32,11 @@ function createQueryClient() {
 }
 
 export function App({ tenant }: { tenant: ClientTenant }) {
-  const [queryClient] = useState(createQueryClient);
+  const [queryClient] = useState(() => {
+    const client = createQueryClient();
+    if (tenant.type === 'company') seedPublicData(client, tenant.company.id);
+    return client;
+  });
   const [router] = useState(() => createRouter(tenant));
   const [toasts, setToasts] = useState(() => usesToasts(tenant, router.state.location.pathname));
 

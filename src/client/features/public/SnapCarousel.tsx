@@ -23,7 +23,7 @@ export function SnapCarousel<T>({
   renderItem: (item: T) => ReactNode;
   itemClassName?: string;
 }) {
-  const track = useRef<HTMLUListElement>(null);
+  const track = useRef<HTMLDivElement>(null);
   const [state, setState] = useState({ pages: 1, page: 0, canPrev: false, canNext: false });
 
   const measure = useCallback(() => {
@@ -65,12 +65,12 @@ export function SnapCarousel<T>({
 
   return (
     <div role="region" aria-roledescription="carrusel" aria-label={label}>
-      <ul
+      <div
         ref={track}
         className="-mx-4 flex snap-x snap-mandatory scroll-px-4 [scrollbar-width:none] gap-4 overflow-x-auto px-4 pb-2 motion-safe:scroll-smooth [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item, i) => (
-          <li
+          <div
             key={itemKey(item)}
             role="group"
             aria-roledescription="diapositiva"
@@ -78,9 +78,9 @@ export function SnapCarousel<T>({
             className={cn('shrink-0 snap-start', itemClassName)}
           >
             {renderItem(item)}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
       {state.pages > 1 && (
         <div className="mt-4 flex items-center justify-between gap-4">
           <div className="flex flex-wrap gap-1" role="group" aria-label="Páginas del carrusel">

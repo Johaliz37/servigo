@@ -3,6 +3,7 @@ import type { CompanyBySlugRow, TenantCompany } from '@shared/tenant';
 import { buildHead } from './html';
 import app from './index';
 import { lookupPage } from './seo';
+import { brandStyle, publicShell } from './shell';
 
 // Fase 09: endpoints del sitio público, robots/sitemap y meta por ruta.
 
@@ -154,9 +155,10 @@ describe('SEO por tenant', () => {
     expect((await req('/sitemap.xml', 'localhost:5273')).status).toBe(404);
   });
 
-  it('la ficha de un servicio da título e imagen para compartir', async () => {
-    mockSupabase({ get_public_item: item });
-    const page = await lookupPage(env, company, `/s/centro/servicios/${ITEM_ID}`);
+  it('la ficha de un servicio da título e imagen para compartir y sus datos iniciales', async () => {
+    const site = { company: { name: 'Barbería Demo' }, branches: [] };
+    mockSupabase({ get_public_item: item, get_public_site: site });
+    const page = await lookupPage(env, company, `/s/Centro/servicios/${ITEM_ID}`);
     expect(page).toEqual({
       status: 200,
       meta: {
@@ -164,19 +166,40 @@ describe('SEO por tenant', () => {
         description: 'A tijera',
         image: 'http://sb.test/storage/v1/object/public/media/c1/catalog/a.webp',
       },
+      data: { site, [`item:centro:${ITEM_ID}`]: item },
+      shell: { type: 'item', item },
     });
-    const head = buildHead({ type: 'company', slug: 'demo', company }, '/s/centro', page.meta);
+    const head = buildHead({ type: 'company', slug: 'demo', company }, '/s/centro', page.meta, page.data);
     expect(head.title).toBe('Corte <clásico> · Barbería Demo');
     expect(head.tags).toContain('<meta property="og:title" content="Corte &lt;clásico&gt; · Barbería Demo">');
     expect(head.tags).toContain('summary_large_image');
+    // Los datos van escapados: ningún "<" puede cerrar el <script>.
+    expect(head.tags).toContain('window.__PUBLIC__={');
+    expect(head.tags).toContain('Corte \\u003cclásico\\u003e');
   });
 
-  it('ruta de producto con id de servicio, sede o ítem inexistente → 404', async () => {
+  it('ruta de producto con id de servicio, sede o ítem inexistente → 404; otras rutas llevan el sitio', async () => {
     mockSupabase({ get_public_item: item });
     expect((await lookupPage(env, company, `/s/centro/productos/${ITEM_ID}`)).status).toBe(404);
-    mockSupabase({});
+    mockSupabase({ get_public_site: { branches: [] } });
     expect((await lookupPage(env, company, '/s/nada')).status).toBe(404);
-    expect(await lookupPage(env, company, '/acerca')).toEqual({ meta: null, status: 200 });
+    expect(await lookupPage(env, company, '/acerca')).toEqual({
+      meta: null,
+      status: 200,
+      data: { site: { branches: [] } },
+      shell: null,
+    });
+  });
+
+  it('el panel no lleva datos públicos ni consulta la BD', async () => {
+    const calls = mockSupabase({});
+    expect(await lookupPage(env, company, '/admin/catalogo')).toEqual({
+      meta: null,
+      status: 200,
+      data: {},
+      shell: null,
+    });
+    expect(calls).toEqual([]);
   });
 
   it('la página de sede usa su encabezado; si la BD falla quedan los meta de la empresa', async () => {
@@ -185,12 +208,62 @@ describe('SEO por tenant', () => {
     expect(page.meta?.title).toBe('Sede Centro · Barbería Demo');
     expect(page.meta?.description).toBe('Lunes a sábado');
     expect(page.meta?.image).toContain('/c1/branches/c.webp');
+    expect(page.data).toEqual({ 'branch:centro': branch });
+    expect(page.shell).toEqual({ type: 'branch', data: branch });
     mockSupabase({}, 500);
-    expect(await lookupPage(env, company, '/s/centro')).toEqual({ meta: null, status: 200 });
+    expect(await lookupPage(env, company, '/s/centro')).toEqual({ meta: null, status: 200, data: {}, shell: null });
   });
 
   it('los meta de página no se aplican al panel', () => {
     const head = buildHead({ type: 'company', slug: 'demo', company }, '/admin', { title: 'X' });
     expect(head.title).toBe('Administración · Barbería Demo');
+  });
+});
+
+describe('esqueleto estático', () => {
+  it('la sede adelanta encabezado, título e imagen, todo escapado', () => {
+    const html = publicShell(
+      'http://sb.test',
+      { ...company, name: 'A&B <Barbería>' },
+      {
+        type: 'branch',
+        data: {
+          ...branch,
+          branch: {
+            ...branch.branch,
+            header: { title: '<script>x</script>', subtitle: 'Lunes', overlay_opacity: 0.4 },
+          },
+        } as never,
+      },
+    )!;
+    expect(html).toContain('A&amp;B &lt;Barbería&gt;');
+    expect(html).toContain(
+      '<h1 class="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">&lt;script&gt;x&lt;/script&gt;</h1>',
+    );
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('fetchpriority="high"');
+    expect(html).toContain('c1/branches/c.thumb.webp 400w');
+  });
+
+  it('la ficha adelanta la primera foto y el título; «Acerca de», su título', () => {
+    const html = publicShell('http://sb.test', company, {
+      type: 'item',
+      item: { ...item, branch: { id: 'b', slug: 'centro', name: 'Sede Centro' } } as never,
+    })!;
+    expect(html).toContain('c1/catalog/a.webp');
+    expect(html).toContain('Corte &lt;clásico&gt;</h1>');
+    expect(publicShell('http://sb.test', company, { type: 'about' })).toContain('Acerca de Barbería Demo</h1>');
+  });
+
+  it('inicio: solo con varias sedes (con una, la SPA redirige)', () => {
+    const site = (n: number) => ({ company: { hero_image_path: null }, branches: Array.from({ length: n }) }) as never;
+    expect(publicShell('http://sb.test', company, { type: 'home', site: site(2) })).toContain('Barbería Demo</h1>');
+    expect(publicShell('http://sb.test', company, { type: 'home', site: site(1) })).toBeNull();
+    expect(publicShell('http://sb.test', company, null)).toBeNull();
+  });
+
+  it('la marca va en el style de <html> (sin destello del color por defecto)', () => {
+    expect(brandStyle(company)).toMatch(/^--primary:oklch\(/);
+    expect(brandStyle({ ...company, primaryColor: null, secondaryColor: null })).toBe('');
   });
 });

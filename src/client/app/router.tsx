@@ -2,12 +2,19 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import type { ClientTenant } from '@shared/tenant';
 import { NotFoundPage, RouteError } from '@client/components/common/RouteError';
 import { FullPageSpinner } from '@client/components/common/Spinner';
+// Sitio público: carga directa, sin chunk aparte. Así la primera página no espera dos saltos
+// de red más (HTML → JS → chunk de la ruta) antes de pintar (fase 09 §4, Lighthouse).
+import { Component as BranchPage } from '@client/features/public/BranchPage';
+import { HomePage } from '@client/features/public/HomePage';
+import { ProductPage, ServicePage } from '@client/features/public/ItemPage';
+import { ComingSoonPage, Component as PublicLayout } from '@client/features/public/PublicLayout';
 
 const HydrateFallback = () => <FullPageSpinner />;
 
 /**
- * Rutas por tenant (fase 03 §3). Todo es *lazy*: el bundle público no carga el código
- * de administración ni supabase-js (que solo importan admin/consola/auth).
+ * Rutas por tenant (fase 03 §3). Todo es *lazy* salvo el sitio público (fase 09 §4): el
+ * bundle inicial no carga el código de administración ni supabase-js (que solo importan
+ * admin/consola/auth).
  */
 
 const authRoutes = (base: 'admin' | 'console'): RouteObject => ({
@@ -59,29 +66,29 @@ const CONTENT_ROUTES: RouteObject[] = [
 const companyRoutes: RouteObject[] = [
   {
     path: '/',
-    lazy: () => import('@client/features/public/PublicLayout'),
+    Component: PublicLayout,
     ErrorBoundary: RouteError,
     HydrateFallback,
     children: [
       {
         index: true,
-        lazy: async () => ({ Component: (await import('@client/features/public/HomePage')).HomePage }),
+        Component: HomePage,
       },
       // Fase 09: sede, fichas y «Acerca de».
-      { path: 's/:branchSlug', lazy: () => import('@client/features/public/BranchPage') },
+      { path: 's/:branchSlug', Component: BranchPage },
       {
         path: 's/:branchSlug/servicios/:id',
-        lazy: async () => ({ Component: (await import('@client/features/public/ItemPage')).ServicePage }),
+        Component: ServicePage,
       },
       {
         path: 's/:branchSlug/productos/:id',
-        lazy: async () => ({ Component: (await import('@client/features/public/ItemPage')).ProductPage }),
+        Component: ProductPage,
       },
       { path: 'acerca', lazy: () => import('@client/features/public/AboutPage') },
       // Fase 10: reserva y consulta.
       ...['mis-reservas', 's/:branchSlug/reservar/*', 'reserva/:code'].map((path) => ({
         path,
-        lazy: async () => ({ Component: (await import('@client/features/public/PublicLayout')).ComingSoonPage }),
+        Component: ComingSoonPage,
       })),
       { path: '*', Component: NotFoundPage },
     ],

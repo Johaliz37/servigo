@@ -9,6 +9,7 @@ import { publicRoutes } from './routes/public';
 import { superadminRoutes } from './routes/superadmin';
 import { anonClient } from './supabase';
 import { loadSitemap, lookupPage } from './seo';
+import { brandStyle, publicShell } from './shell';
 import { tenantMiddleware } from './tenant';
 
 const app = new Hono<AppEnv>();
@@ -69,9 +70,23 @@ app.all('*', async (c) => {
 
   const path = new URL(c.req.url).pathname;
   const company = c.get('company');
-  const page = company ? await lookupPage(c.env, company, path) : { meta: null, status: 200 as const };
-  const head = buildHead(clientTenant(c), path, page.meta);
+  const page = company
+    ? await lookupPage(c.env, company, path)
+    : { meta: null, status: 200 as const, data: {}, shell: null };
+  const head = buildHead(clientTenant(c), path, page.meta, page.data);
+  const shell = company ? publicShell(c.env.SUPABASE_URL, company, page.shell) : null;
+  const style = company ? brandStyle(company) : '';
   const rewritten = new HTMLRewriter()
+    .on('html', {
+      element(el) {
+        if (style) el.setAttribute('style', style);
+      },
+    })
+    .on('div#root', {
+      element(el) {
+        if (shell) el.setInnerContent(shell, { html: true });
+      },
+    })
     .on('title', {
       element(el) {
         el.setInnerContent(head.title);

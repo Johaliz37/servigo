@@ -272,3 +272,14 @@ export function sitemapXml(origin: string, data: PublicSitemap): string {
   const urls = paths.map((p) => `<url><loc>${xmlEscape(origin + p)}</loc></url>`).join('');
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
 }
+
+// ---------------------------------------------------------------------------
+// Datos iniciales en el HTML (`window.__PUBLIC__`)
+// ---------------------------------------------------------------------------
+
+/** Claves de los datos que el Worker incrusta en el HTML y la SPA siembra en su caché. */
+export const publicDataKey = {
+  site: () => 'site',
+  branch: (branchSlug: string) => `branch:${branchSlug.toLowerCase()}`,
+  item: (branchSlug: string, id: string) => `item:${branchSlug.toLowerCase()}:${id.toLowerCase()}`,
+};

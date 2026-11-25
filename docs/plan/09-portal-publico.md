@@ -49,7 +49,7 @@ Fases 05 y 06 (contenido y catálogo). Función `effective_catalog`, módulo `pr
 ### 4. Calidad del front público
 - [x] Mobile-first; probado a 360 px, 768 px y 1280 px.
 - [x] Imágenes `loading="lazy"`, `width/height` explícitos, `srcset` con miniatura y versión grande; la primera imagen del encabezado con `fetchpriority="high"`.
-- [ ] Lighthouse móvil ≥ 90 en rendimiento, accesibilidad, buenas prácticas y SEO.
+- [x] Lighthouse móvil ≥ 90 en rendimiento, accesibilidad, buenas prácticas y SEO.
 - [x] Bundle JS inicial de la ruta pública ≤ 150 KB gzip.
 
 ### 5. E2E (Playwright)
@@ -74,11 +74,7 @@ Fases 05 y 06 (contenido y catálogo). Función `effective_catalog`, módulo `pr
   - `/s/:sede` y `/s/:sede/(servicios|productos)/:id` llevan título, descripción e imagen propios (`summary_large_image`). Si la sede o el ítem no existen, responden 404 con la SPA.
 - **Purga desde el panel.** `usePurgePublicOnSave` (en `AdminLayout`) escucha la caché de mutaciones de TanStack Query: cualquier guardado correcto de owner/admin llama a `POST /api/admin/purge-public`. Varios guardados seguidos se agrupan en 800 ms. `purge-tenant` (fase 05) también purga.
   - La caché del propio navegador (`max-age=60`) puede mostrarle a quien edita la versión anterior hasta 60 s. Un visitante nuevo ve el cambio al instante: lo comprueba la E2E.
-- **Peso** (build de producción, JS gzip descargado al abrir):
-  - inicio: 143 KB;
-  - sede: 145 KB;
-  - ficha: 145 KB;
-  - «Acerca de»: 142 KB más 37 KB de Markdown, que solo se descargan si hay texto.
+- **Peso** (build de producción, JS gzip descargado al abrir): 142 KB en inicio, sede y ficha. «Acerca de» añade 37 KB de Markdown solo si hay texto.
   - Base fija: React, React Router y TanStack Query suman ~137 KB.
   - Para entrar en el presupuesto (D27), el sitio público no carga Radix, Embla, sonner ni date-fns:
     - `Disclosure` reemplaza al menú y al panel lateral;
@@ -86,8 +82,12 @@ Fases 05 y 06 (contenido y catálogo). Función `effective_catalog`, módulo `pr
     - el Toaster solo se monta en panel, acceso y consola;
     - `formatMoney` está en `@shared/money` y `messageOf` en `lib/messages`;
     - el lightbox y el Markdown se cargan al usarse.
+- **Lighthouse móvil** (build de producción con `vite preview` detrás de un proxy local que comprime como Cloudflare; sin compresión, rendimiento baja a ~68 por los 378 KB sin gzip): 97–100 en rendimiento y 100 en accesibilidad, buenas prácticas y SEO, en inicio, sede, ficha y «Acerca de» de `demo` y `spa`. Para llegar ahí (D27):
+  - **Esqueleto estático** (`src/worker/shell.ts`): el Worker pone en `#root` el encabezado y el título de la página (con la foto de portada si la hay), con las mismas clases que React. El elemento LCP se pinta antes del JS. React lo reemplaza al montar sin mover nada. La marca va en el `style` de `<html>`, sin destello de color.
+  - **Datos en el HTML** (`window.__PUBLIC__`): el Worker incrusta, escapados, el sitio y la sede o ficha que ya leyó para los meta. `seedPublicData` los pone en la caché de TanStack Query: la primera página no espera a la API.
+  - **Rutas públicas sin carga diferida**: layout, inicio, sede y ficha van en el bundle principal, sin otro salto de red (el panel también descarga ese código, que es poco). «Acerca de» sigue siendo *lazy*.
+  - El carrusel usa `div` con `role="group"`: un `li` no admite ese rol (aviso de accesibilidad).
 - **Carrusel.** Embla se cambió por `SnapCarousel` (`scroll-snap` nativo, D27): *swipe* y flechas, puntos por página y región accesible. Sin autoplay (era opcional): mejor para accesibilidad.
 - **Pendiente de verificación manual:**
-  - Lighthouse móvil: no se pudo ejecutar en esta sesión. Comando sugerido: `pnpm build && pnpm preview` y Lighthouse sobre `/s/centro`.
   - Vista previa real en WhatsApp: requiere producción. Los meta ya los comprueban la E2E y `public-site.test.ts`.
 - **Rutas de la fase 10.** `/s/:sede/reservar/:serviceId?`, `/reserva/:code` y `/mis-reservas` siguen en «Muy pronto». Los botones «Reservar» ya apuntan a `bookingPath()`.
