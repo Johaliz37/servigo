@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => ({
       'rehype-sanitize',
       'cmdk',
       'simple-icons',
+      'react-day-picker',
     ],
   },
   server: {

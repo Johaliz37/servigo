@@ -73,3 +73,15 @@ Pasos con barra de progreso, estado en la URL (`?step=&date=&slot=`) y en `sessi
 > - `discount_total` suma servicio y productos.
 >
 > `effective_addons` ya filtra `allow_in_booking`, la disponibilidad en la sede y el stock, y limita la cantidad máxima al stock.
+
+> **Heredado de la fase 07 (D25).**
+> - El paso de información adicional usa `fieldsForService` + `DynamicFields` + `buildAnswersSchema`, y guarda con `toAnswerRows`.
+> - `create_booking` debe revalidar las respuestas en SQL con las mismas reglas:
+>   - obligatorios, y check obligatorio = `true`;
+>   - opciones que existan;
+>   - longitudes con los topes de 500 y 5000 caracteres;
+>   - min y max;
+>   - fecha real;
+>   - patrón con `~` anclado.
+> - Los patrones son expresiones regulares de JS. En SQL se evalúan con la sintaxis de Postgres: lo común (clases, cuantificadores, alternancia) coincide.
+> - Lo que conviene probar con un caso de paridad, como en los precios: patrones con `\p{…}` (solo JS con `u`) o lookarounds.
