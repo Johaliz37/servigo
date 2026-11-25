@@ -229,3 +229,29 @@ describe('GET /api/bookings/:code', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('POST /api/admin/slots-changed (fase 11)', () => {
+  const send = (env: Env, auth = true) =>
+    app.request(
+      'http://demo.localhost:5273/api/admin/slots-changed',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...(auth ? { authorization: 'Bearer jwt' } : {}) },
+        body: JSON.stringify({
+          branch_id: '20000000-0000-4000-a000-000000000001',
+          service_id: '30000000-0000-4000-a000-000000000001',
+        }),
+      },
+      env,
+    );
+
+  it('sin sesión → 401; sin acceso a la sede → 403; con acceso → 204', async () => {
+    mockUpstream();
+    expect((await send(makeEnv(), false)).status).toBe(401);
+    mockUpstream({ rpc: { can_access_branch: false } });
+    expect((await send(makeEnv())).status).toBe(403);
+    const calls = mockUpstream({ rpc: { can_access_branch: true } });
+    expect((await send(makeEnv())).status).toBe(204);
+    expect(calls).toContain('can_access_branch');
+  });
+});

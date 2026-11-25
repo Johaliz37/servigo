@@ -100,7 +100,10 @@ import {
   wallIso,
   type RowBase,
 } from './model';
-import { BookingDetails, EventDetails, PointPopover, QuickCreate, type Point } from './popovers';
+import { EventDetails, PointPopover, QuickCreate, type Point } from './popovers';
+import { canReschedule } from '@shared/booking-admin';
+import { BookingDetail } from '@client/features/bookings/BookingDetail';
+import { MoveBookingDialog, type MoveTarget } from '@client/features/bookings/MoveBookingDialog';
 import { useScopePrompt } from './ScopeDialog';
 import './calendar.css';
 
@@ -167,9 +170,7 @@ export type CalendarScope =
   { type: 'branch'; branch: CalendarBranch; timezone: string } | { type: 'company'; timezone: string };
 
 type PopoverState =
-  | { type: 'create'; start: number; end: number; allDay: boolean }
-  | { type: 'event'; occ: OccurrenceRef }
-  | { type: 'booking'; booking: CalendarBooking };
+  { type: 'create'; start: number; end: number; allDay: boolean } | { type: 'event'; occ: OccurrenceRef };
 
 function CalendarView({
   scope,
@@ -226,6 +227,10 @@ function CalendarView({
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const [dialog, setDialog] = useState<DialogTarget | null>(null);
   const [ownPrompt, setOwnPrompt] = useState(false);
+  // Fase 11: detalle de la reserva en un panel lateral y reprogramar arrastrando.
+  const [openBooking, setOpenBooking] = useState<string | null>(null);
+  const [move, setMove] = useState<MoveTarget | null>(null);
+  const canMoveBookings = can('bookings.manage');
 
   const bookingBranchIds = useMemo(
     () => (scope.type === 'branch' ? [scope.branch.id] : branches.filter((b) => !b.ownAvailability).map((b) => b.id)),
@@ -322,7 +327,8 @@ function CalendarView({
           title: `${b.customer_name} · ${b.service_name}`,
           start: wallIso(Date.parse(b.starts_at), tz),
           end: wallIso(Date.parse(b.ends_at), tz),
-          editable: false,
+          editable: canMoveBookings && canReschedule(b.status),
+          durationEditable: false,
           classNames: ['sv-ev', 'sv-ev-booking', `sv-booking-${b.status}`],
           extendedProps: { type: 'booking', booking: b },
         });
@@ -343,7 +349,18 @@ function CalendarView({
       }
     }
     return out;
-  }, [occurrences, rowsById, layers, serviceFilter, editable, bookings.data, slotDays, slotSettings, tz]);
+  }, [
+    occurrences,
+    rowsById,
+    layers,
+    serviceFilter,
+    editable,
+    bookings.data,
+    slotDays,
+    slotSettings,
+    tz,
+    canMoveBookings,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Acciones
@@ -396,6 +413,20 @@ function CalendarView({
 
   async function onMove(info: EventDropArg | EventResizeDoneArg) {
     const props = info.event.extendedProps;
+    if (props.type === 'booking') {
+      const b = props.booking as CalendarBooking;
+      if (!info.event.start || info.event.allDay) {
+        info.revert();
+        return;
+      }
+      setMove({
+        booking: b,
+        startsAt: new Date(fcRange(info.event.start, info.event.start, false, tz).start).toISOString(),
+        timezone: tz,
+        revert: info.revert,
+      });
+      return;
+    }
     const row = rowsById.get(props.eventId as string);
     if (props.type !== 'availability' || !row || !info.event.start) {
       info.revert();
@@ -436,8 +467,10 @@ function CalendarView({
     if (props.type === 'slot') return;
     const box = info.el.getBoundingClientRect();
     setPoint({ x: box.right, y: box.top });
-    if (props.type === 'booking') setPopover({ type: 'booking', booking: props.booking as CalendarBooking });
-    else setPopover({ type: 'event', occ: occOf(props) });
+    if (props.type === 'booking') {
+      setPoint(null);
+      setOpenBooking((props.booking as CalendarBooking).id);
+    } else setPopover({ type: 'event', occ: occOf(props) });
   }
 
   function quickSave(title: string, kind: AvailabilityKind, more: boolean) {
@@ -789,8 +822,18 @@ function CalendarView({
             onClose={closePopover}
           />
         )}
-        {popover?.type === 'booking' && <BookingDetails booking={popover.booking} tz={tz} onClose={closePopover} />}
       </PointPopover>
+
+      <Sheet open={!!openBooking} onOpenChange={(o) => !o && setOpenBooking(null)}>
+        <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-xl">
+          <SheetHeader className="p-0">
+            <SheetTitle>Reserva</SheetTitle>
+            <SheetDescription className="sr-only">Detalle, acciones e historial de la reserva</SheetDescription>
+          </SheetHeader>
+          {openBooking && <BookingDetail key={openBooking} id={openBooking} onOpenBooking={setOpenBooking} />}
+        </SheetContent>
+      </Sheet>
+      <MoveBookingDialog target={move} onClose={() => setMove(null)} />
 
       <EventDialog
         target={dialog}

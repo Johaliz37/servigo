@@ -169,6 +169,9 @@ begin
   execute p_sql;
   get diagnostics v_count = row_count;
   return v_count;
+exception when insufficient_privilege then
+  -- Sin privilegio de tabla (p. ej. bookings solo cambia por RPC, D29): no modifica nada.
+  return 0;
 end;
 $$;
 

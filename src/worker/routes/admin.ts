@@ -1,9 +1,10 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { inviteMemberSchema, type InviteResult } from '@shared/schemas';
 import type { ClientTenant } from '@shared/tenant';
 import type { AppEnv } from '../env';
 import { apiError, bearerToken, dbError, parseBody } from '../http';
-import { purgePublic } from '../public-cache';
+import { bumpSlotsVersion, purgePublic } from '../public-cache';
 import { sendInvitationEmail, userClient } from '../supabase';
 import { loadCompany, purgeCompany } from '../tenant';
 
@@ -119,5 +120,31 @@ adminRoutes.post('/purge-public', async (c) => {
   if (allowed !== true) return apiError(c, 403, 'forbidden', 'No tienes permiso para hacer esto');
 
   await purgePublic(company.id);
+  return c.body(null, 204);
+});
+
+const slotsChangedSchema = z.object({ branch_id: z.uuid(), service_id: z.uuid() });
+
+/**
+ * Invalida los cupos cacheados de una sede y servicio (D28) tras confirmar, cancelar,
+ * reprogramar o crear una reserva en el panel (fase 11): el sitio público deja de ofrecer, o
+ * vuelve a ofrecer, ese horario al instante. Cualquier miembro con acceso a la sede.
+ */
+adminRoutes.post('/slots-changed', async (c) => {
+  const company = c.get('company');
+  const jwt = bearerToken(c);
+  if (!company || !jwt) return apiError(c, 401, 'unauthorized', 'Inicia sesión');
+
+  const body = await parseBody(c, slotsChangedSchema);
+  if ('response' in body) return body.response;
+
+  const { data: allowed, error } = await userClient(c.env, jwt).rpc('can_access_branch', {
+    p_company: company.id,
+    p_branch: body.data.branch_id,
+  });
+  if (error) return dbError(c, error);
+  if (allowed !== true) return apiError(c, 403, 'forbidden', 'No tienes permiso para hacer esto');
+
+  await bumpSlotsVersion(company.id, body.data.branch_id, body.data.service_id);
   return c.body(null, 204);
 });

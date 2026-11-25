@@ -515,6 +515,13 @@ export type Database = {
             foreignKeyName: 'bookings_customer_id_fkey';
             columns: ['customer_id'];
             isOneToOne: false;
+            referencedRelation: 'customer_stats';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'bookings_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
             referencedRelation: 'customers';
             referencedColumns: ['id'];
           },
@@ -1322,13 +1329,65 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      customer_stats: {
+        Row: {
+          bookings_count: number | null;
+          company_id: string;
+          created_at: string;
+          email: string | null;
+          id: string;
+          last_visit_at: string | null;
+          name: string;
+          next_booking_at: string | null;
+          notes: string | null;
+          phone: string;
+          total_spent: number | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: 'customers_company_id_fkey';
+            columns: ['company_id'];
+            isOneToOne: false;
+            referencedRelation: 'companies';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: Json };
+      admin_slot_inputs: {
+        Args: { p_branch: string; p_exclude?: string; p_from: string; p_service: string; p_to: string };
+        Returns: Json;
+      };
       apply_availability_plan: { Args: { p_plan: Json }; Returns: undefined };
+      booking_capacity_cap: { Args: { p_branch: string; p_company: string; p_service: string }; Returns: number };
+      booking_history: {
+        Args: { p_booking: string };
+        Returns: {
+          action: string;
+          actor_email: string;
+          created_at: string;
+          id: string;
+          payload: Json;
+        }[];
+      };
+      booking_transition_allowed: {
+        Args: {
+          p_from: Database['public']['Enums']['booking_status'];
+          p_now?: string;
+          p_starts_at: string;
+          p_to: Database['public']['Enums']['booking_status'];
+        };
+        Returns: boolean;
+      };
       can_access_branch: { Args: { p_branch: string; p_company: string }; Returns: boolean };
       cancel_booking_public: { Args: { p_code: string; p_company: string }; Returns: Json };
+      change_booking_status: {
+        Args: { p_booking: string; p_reason?: string; p_to: Database['public']['Enums']['booking_status'] };
+        Returns: Json;
+      };
       check_slug: { Args: { p_slug: string }; Returns: string };
       company_storage_usage: { Args: { p_company: string }; Returns: number };
       console_companies: {
@@ -1344,6 +1403,11 @@ export type Database = {
         }[];
       };
       create_booking: { Args: { p_payload: Json }; Returns: Json };
+      create_booking_admin: { Args: { p_payload: Json }; Returns: Json };
+      create_booking_core: {
+        Args: { p_actor: string; p_force: boolean; p_payload: Json; p_source: string };
+        Returns: Json;
+      };
       create_company: {
         Args: { p_currency?: string; p_name: string; p_owner_email: string; p_slug: string; p_timezone?: string };
         Returns: Json;
@@ -1421,7 +1485,10 @@ export type Database = {
       get_public_item: { Args: { p_branch_slug: string; p_item_id: string; p_slug: string }; Returns: Json };
       get_public_site: { Args: { p_slug: string }; Returns: Json };
       get_public_sitemap: { Args: { p_slug: string }; Returns: Json };
-      get_slot_inputs: { Args: { p_branch: string; p_from: string; p_service: string; p_to: string }; Returns: Json };
+      get_slot_inputs: {
+        Args: { p_branch: string; p_exclude?: string; p_from: string; p_service: string; p_to: string };
+        Returns: Json;
+      };
       has_company_role: {
         Args: { p_company: string; p_roles?: Database['public']['Enums']['member_role'][] };
         Returns: boolean;
@@ -1440,6 +1507,46 @@ export type Database = {
           role: Database['public']['Enums']['member_role'];
           user_id: string;
         }[];
+      };
+      lock_booking_for_admin: {
+        Args: { p_booking: string };
+        Returns: {
+          block_ends_at: string;
+          block_starts_at: string;
+          branch_id: string;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          code: string;
+          company_id: string;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_email: string | null;
+          customer_id: string;
+          customer_name: string;
+          customer_notes: string | null;
+          customer_phone: string;
+          discount_total: number;
+          ends_at: string;
+          id: string;
+          internal_notes: string | null;
+          products_total: number;
+          service_discount: number;
+          service_id: string;
+          service_name: string;
+          service_price: number;
+          source: string;
+          starts_at: string;
+          status: Database['public']['Enums']['booking_status'];
+          total: number;
+          updated_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'bookings';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       mask_name: { Args: { p_name: string }; Returns: string };
       pick_discount: {
@@ -1536,6 +1643,10 @@ export type Database = {
       };
       public_socials: { Args: { p_branch: string; p_company: string }; Returns: Json };
       reorder_rows: { Args: { p_ids: string[]; p_table: string }; Returns: undefined };
+      reschedule_booking: {
+        Args: { p_booking: string; p_capacity?: number; p_force?: boolean; p_starts_at: string };
+        Returns: Json;
+      };
       service_fields: {
         Args: { p_company: string; p_service: string };
         Returns: {
@@ -1563,6 +1674,7 @@ export type Database = {
       };
       slug_status: { Args: { p_slug: string }; Returns: string };
       try_uuid: { Args: { p_value: string }; Returns: string };
+      update_booking_admin: { Args: { p_booking: string; p_payload: Json }; Returns: Json };
       upsert_catalog_item: { Args: { p_payload: Json }; Returns: string };
       validate_booking_answers: { Args: { p_answers: Json; p_company: string; p_service: string }; Returns: Json };
     };
