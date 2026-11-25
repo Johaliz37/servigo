@@ -162,4 +162,32 @@ describe('worker', () => {
     expect((await req('http://demo.localhost:5273/api/superadmin/companies', { method: 'POST' })).status).toBe(404);
     expect((await req('http://localhost:5273/api/superadmin/companies', { method: 'POST' })).status).toBe(401);
   });
+
+  it('/api/admin/purge-tenant: owner/admin recibe la empresa fresca; staff, 403', async () => {
+    let allowed = true;
+    let row: CompanyBySlugRow = demoRow;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input instanceof Request ? input.url : input);
+        if (url.endsWith('/rpc/get_company_by_slug')) return Response.json(row);
+        if (url.endsWith('/rpc/has_company_role')) return Response.json(allowed);
+        return Response.json({ message: 'unexpected' }, { status: 500 });
+      }),
+    );
+    const purge = () =>
+      req('http://demo.localhost:5273/api/admin/purge-tenant', {
+        method: 'POST',
+        headers: { authorization: 'Bearer jwt' },
+      });
+
+    row = { ...demoRow, name: 'Nombre nuevo' };
+    const ok = await purge();
+    expect(ok.status).toBe(200);
+    const body = (await ok.json()) as ClientTenant;
+    expect(body.type === 'company' && body.company.name).toBe('Nombre nuevo');
+
+    allowed = false;
+    expect((await purge()).status).toBe(403);
+  });
 });

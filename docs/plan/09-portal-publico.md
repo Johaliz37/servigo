@@ -16,6 +16,8 @@ Fases 05 y 06 (contenido y catálogo). Función `effective_catalog`, módulo `pr
 
 ## Tareas
 
+> Heredado de la fase 05: el enlace «Acerca de» solo aparece si alguna sección es visible, y redes y patrocinadores respetan `is_visible`, `branches.show_sponsors` y la herencia empresa → sede (si la sede tiene redes propias, reemplazan a las de la empresa). El panel ya guarda todo eso.
+
 ### 1. RPC públicas (security definer, `grant execute to anon, service_role`)
 - [ ] `get_public_site(p_slug)` → `{ company: {name, logo, colors, footer, seo, contact}, branches: [{slug, name, city, cover_image, sort_order}] (solo activas), socials_company: [...], about_visible: bool }`.
 - [ ] `get_public_branch(p_slug, p_branch_slug)` → `{ branch: {name, header, address, phone, whatsapp, maps_url, timezone}, services: [...], products: [...], sponsors: [...visibles], socials: [...sede o heredadas], about_branch_visible }`. Cada ítem con `id, kind, name, short_description, cover, photos, details, price, final_price, discount {label, ends_at}, duration_minutes`.

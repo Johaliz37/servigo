@@ -598,6 +598,7 @@ export type Database = {
           own_availability: boolean;
           own_catalog: boolean;
           phone: string | null;
+          show_sponsors: boolean;
           slug: string;
           sort_order: number;
           timezone: string | null;
@@ -622,6 +623,7 @@ export type Database = {
           own_availability?: boolean;
           own_catalog?: boolean;
           phone?: string | null;
+          show_sponsors?: boolean;
           slug: string;
           sort_order?: number;
           timezone?: string | null;
@@ -645,6 +647,7 @@ export type Database = {
           own_availability?: boolean;
           own_catalog?: boolean;
           phone?: string | null;
+          show_sponsors?: boolean;
           slug?: string;
           sort_order?: number;
           timezone?: string | null;
@@ -1365,6 +1368,7 @@ export type Database = {
         }[];
       };
       ping: { Args: Record<PropertyKey, never>; Returns: string };
+      reorder_rows: { Args: { p_ids: string[]; p_table: string }; Returns: undefined };
       slug_status: { Args: { p_slug: string }; Returns: string };
       try_uuid: { Args: { p_value: string }; Returns: string };
     };

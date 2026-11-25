@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { inviteMemberSchema, type InviteResult } from '@shared/schemas';
+import type { ClientTenant } from '@shared/tenant';
 import type { AppEnv } from '../env';
 import { apiError, bearerToken, dbError, parseBody } from '../http';
 import { sendInvitationEmail, userClient } from '../supabase';
+import { loadCompany, purgeCompany } from '../tenant';
 
 const INVITATION_DAYS = 7;
 
@@ -73,4 +75,28 @@ adminRoutes.post('/invitations/:id/resend', async (c) => {
 
   const emailSent = await sendInvitationEmail(c.env, data.email, acceptUrl(c.req.url, data.token));
   return c.json({ invitationId: data.id, email: data.email, emailSent } satisfies InviteResult);
+});
+
+/**
+ * Borra la caché del tenant tras editar perfil o marca (fase 05 §2) y devuelve la empresa
+ * recién leída, para que el panel la aplique sin recargar. Solo owner/admin.
+ */
+adminRoutes.post('/purge-tenant', async (c) => {
+  const company = c.get('company');
+  const jwt = bearerToken(c);
+  if (!company || !jwt) return apiError(c, 401, 'unauthorized', 'Inicia sesión');
+
+  const { data: allowed, error } = await userClient(c.env, jwt).rpc('has_company_role', {
+    p_company: company.id,
+    p_roles: ['owner', 'admin'],
+  });
+  if (error) return dbError(c, error);
+  if (allowed !== true) return apiError(c, 403, 'forbidden', 'No tienes permiso para hacer esto');
+
+  await purgeCompany(company.slug);
+  const fresh = await loadCompany(c.env, company.slug);
+  if (!fresh) return apiError(c, 404, 'company_not_found', 'Esta empresa no existe');
+  return c.json({ type: 'company', slug: fresh.slug, company: fresh } satisfies ClientTenant, 200, {
+    'cache-control': 'no-store',
+  });
 });
