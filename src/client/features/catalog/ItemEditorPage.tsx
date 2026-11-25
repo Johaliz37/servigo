@@ -27,6 +27,7 @@ import { messageOf } from '@client/lib/errors';
 import { RequireAction } from '@client/features/admin/RequireAction';
 import { useBranchesAdmin, type BranchRow } from '@client/features/content/api';
 import { useCatalogItem, useSaveCatalogItem, type CatalogListRow } from './api';
+import { ServiceFieldsCard } from '@client/features/forms/ServiceFieldsCard';
 import { DeleteItemDialog } from './DeleteItemDialog';
 import {
   BranchesSection,
@@ -69,7 +70,7 @@ function ItemEditor({ kind }: { kind: CatalogKind }) {
   return <ItemFormView key={itemId ?? 'new'} kind={kind} record={item.data ?? null} branches={branches.data} />;
 }
 
-type TabId = 'general' | 'details' | 'photos' | 'discounts' | 'products' | 'branches';
+type TabId = 'general' | 'details' | 'photos' | 'discounts' | 'products' | 'branches' | 'fields';
 
 const TAB_FIELDS: Record<TabId, (keyof CatalogItemInput)[]> = {
   general: [
@@ -89,6 +90,7 @@ const TAB_FIELDS: Record<TabId, (keyof CatalogItemInput)[]> = {
   discounts: ['discounts'],
   products: ['products'],
   branches: ['branches'],
+  fields: [],
 };
 
 function tabsWithErrors(errors: FieldErrors<CatalogItemInput>): Set<TabId> {
@@ -190,6 +192,7 @@ function ItemFormView({
     { id: 'discounts', label: 'Descuentos', show: true },
     { id: 'products', label: 'Productos', show: kind === 'service' },
     { id: 'branches', label: 'Sedes', show: ownBranches.length > 0 },
+    { id: 'fields', label: 'Información adicional', show: kind === 'service' && !!record },
   ];
 
   const deleteTarget: CatalogListRow | null =
@@ -277,6 +280,11 @@ function ItemFormView({
             {ownBranches.length > 0 && (
               <TabsContent value="branches" className="mt-4">
                 <BranchesSection form={form} branches={branches} />
+              </TabsContent>
+            )}
+            {kind === 'service' && record && (
+              <TabsContent value="fields" className="mt-4">
+                <ServiceFieldsCard serviceId={record.id} />
               </TabsContent>
             )}
           </Tabs>

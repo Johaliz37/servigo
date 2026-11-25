@@ -162,7 +162,10 @@ export function useDeleteBranch() {
 }
 
 /** Orden por arrastre (RPC atómica `reorder_rows`). Aplica el orden en caché al instante. */
-export function useReorder(table: 'branches' | 'sponsors' | 'social_links' | 'catalog_items', queryKey: unknown[]) {
+export function useReorder(
+  table: 'branches' | 'sponsors' | 'social_links' | 'catalog_items' | 'booking_fields',
+  queryKey: unknown[],
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (ids: string[]) => {
