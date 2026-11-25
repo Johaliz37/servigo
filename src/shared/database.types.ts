@@ -1383,6 +1383,7 @@ export type Database = {
         Returns: boolean;
       };
       can_access_branch: { Args: { p_branch: string; p_company: string }; Returns: boolean };
+      can_see_revenue: { Args: { p_company: string }; Returns: boolean };
       cancel_booking_public: { Args: { p_code: string; p_company: string }; Returns: Json };
       change_booking_status: {
         Args: { p_booking: string; p_reason?: string; p_to: Database['public']['Enums']['booking_status'] };
@@ -1413,6 +1414,65 @@ export type Database = {
         Returns: Json;
       };
       currency_digits: { Args: { p_currency: string }; Returns: number };
+      dashboard_bookings: {
+        Args: { p_branch: string; p_company: string; p_from: string; p_to: string };
+        Returns: {
+          block_ends_at: string;
+          block_starts_at: string;
+          branch_id: string;
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          code: string;
+          company_id: string;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          customer_email: string | null;
+          customer_id: string;
+          customer_name: string;
+          customer_notes: string | null;
+          customer_phone: string;
+          discount_total: number;
+          ends_at: string;
+          id: string;
+          internal_notes: string | null;
+          products_total: number;
+          service_discount: number;
+          service_id: string;
+          service_name: string;
+          service_price: number;
+          source: string;
+          starts_at: string;
+          status: Database['public']['Enums']['booking_status'];
+          total: number;
+          updated_at: string;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'bookings';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      dashboard_branches: { Args: { p_branch: string; p_company: string }; Returns: string[] };
+      dashboard_by_branch: { Args: { p_company: string; p_from: string; p_to: string }; Returns: Json };
+      dashboard_check_range: { Args: { p_from: string; p_to: string }; Returns: undefined };
+      dashboard_heatmap: { Args: { p_branch: string; p_company: string; p_from: string; p_to: string }; Returns: Json };
+      dashboard_kpis: { Args: { p_branch: string; p_company: string; p_from: string; p_to: string }; Returns: Json };
+      dashboard_period: { Args: { p_branch: string; p_company: string; p_from: string; p_to: string }; Returns: Json };
+      dashboard_timeseries: {
+        Args: { p_branch: string; p_bucket?: string; p_company: string; p_from: string; p_to: string };
+        Returns: Json;
+      };
+      dashboard_top_products: {
+        Args: { p_branch: string; p_company: string; p_from: string; p_limit?: number; p_to: string };
+        Returns: Json;
+      };
+      dashboard_top_services: {
+        Args: { p_branch: string; p_company: string; p_from: string; p_limit?: number; p_to: string };
+        Returns: Json;
+      };
+      dashboard_tz: { Args: { p_branch: string; p_company: string }; Returns: string };
       discount_amount: {
         Args: {
           p_base: number;

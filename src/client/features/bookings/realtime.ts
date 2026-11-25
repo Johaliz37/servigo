@@ -91,6 +91,7 @@ export function useBookingsRealtime() {
         void queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
         void queryClient.invalidateQueries({ queryKey: ['admin-booking'] });
         void queryClient.invalidateQueries({ queryKey: ['calendar-bookings'] });
+        void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }, 300);
     };
 
