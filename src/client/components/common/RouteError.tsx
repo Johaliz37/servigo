@@ -1,6 +1,6 @@
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
 import { Button } from '@client/components/ui/button';
-import { messageOf } from '@client/lib/errors';
+import { messageOf } from '@client/lib/messages';
 
 /** Página "no encontrada" dentro de la SPA (la del tenant inexistente la sirve el Worker). */
 export function NotFoundPage() {

@@ -178,7 +178,7 @@ function CarouselPrevious({
       {...props}
     >
       <ArrowLeft />
-      <span className="sr-only">Previous slide</span>
+      <span className="sr-only">Anterior</span>
     </Button>
   );
 }
@@ -208,7 +208,7 @@ function CarouselNext({
       {...props}
     >
       <ArrowRight />
-      <span className="sr-only">Next slide</span>
+      <span className="sr-only">Siguiente</span>
     </Button>
   );
 }

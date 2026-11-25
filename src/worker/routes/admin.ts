@@ -3,6 +3,7 @@ import { inviteMemberSchema, type InviteResult } from '@shared/schemas';
 import type { ClientTenant } from '@shared/tenant';
 import type { AppEnv } from '../env';
 import { apiError, bearerToken, dbError, parseBody } from '../http';
+import { purgePublic } from '../public-cache';
 import { sendInvitationEmail, userClient } from '../supabase';
 import { loadCompany, purgeCompany } from '../tenant';
 
@@ -93,10 +94,30 @@ adminRoutes.post('/purge-tenant', async (c) => {
   if (error) return dbError(c, error);
   if (allowed !== true) return apiError(c, 403, 'forbidden', 'No tienes permiso para hacer esto');
 
-  await purgeCompany(company.slug);
+  await Promise.all([purgeCompany(company.slug), purgePublic(company.id)]);
   const fresh = await loadCompany(c.env, company.slug);
   if (!fresh) return apiError(c, 404, 'company_not_found', 'Esta empresa no existe');
   return c.json({ type: 'company', slug: fresh.slug, company: fresh } satisfies ClientTenant, 200, {
     'cache-control': 'no-store',
   });
+});
+
+/**
+ * Invalida la caché del sitio público (fase 09 §2) tras guardar contenido, catálogo o sedes
+ * en el panel: el cambio se ve al instante y no al vencer los 60 s. Solo owner/admin.
+ */
+adminRoutes.post('/purge-public', async (c) => {
+  const company = c.get('company');
+  const jwt = bearerToken(c);
+  if (!company || !jwt) return apiError(c, 401, 'unauthorized', 'Inicia sesión');
+
+  const { data: allowed, error } = await userClient(c.env, jwt).rpc('has_company_role', {
+    p_company: company.id,
+    p_roles: ['owner', 'admin'],
+  });
+  if (error) return dbError(c, error);
+  if (allowed !== true) return apiError(c, 403, 'forbidden', 'No tienes permiso para hacer esto');
+
+  await purgePublic(company.id);
+  return c.body(null, 204);
 });

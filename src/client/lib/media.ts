@@ -8,17 +8,11 @@ import {
   thumbPath,
   type MediaEntity,
 } from '@shared/content';
-import { mediaUrl as buildMediaUrl } from '@shared/tenant';
 import { supabase } from './supabase';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const BUCKET = 'media';
 
-/** URL pública directa del bucket `media` (00 D14). `thumb` = miniatura de 400 px. */
-export function mediaUrl(path: string | null | undefined, variant?: 'thumb'): string | null {
-  if (!path) return null;
-  return buildMediaUrl(SUPABASE_URL, variant === 'thumb' ? thumbPath(path) : path);
-}
+export { mediaUrl } from './media-url';
 
 /** Recorte en píxeles de la imagen original (lo entrega react-easy-crop). */
 export interface CropArea {

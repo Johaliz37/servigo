@@ -94,3 +94,9 @@ Pasos con barra de progreso, estado en la URL (`?step=&date=&slot=`) y en `sessi
 >   - comprueba que el número de esas reservas sea menor que `capacity_override ?? capacity`.
 > - La capacidad de la ventana la calcula el motor; conviene pasarla a la RPC o recalcularla con las mismas reglas.
 
+
+> **Heredado de la fase 09 (D27).**
+> - Los botones «Reservar» ya llevan a `bookingPath(sede, servicio?)` (`@shared/public-site`). Esas rutas, `/reserva/:code` y `/mis-reservas` muestran hoy «Muy pronto» (`router.tsx`).
+> - Los datos públicos se leen con `publicFetch` y los hooks de `features/public/api.ts`. El ítem de `get_public_item` ya trae `addons` con `max_quantity`.
+> - El sitio público no monta el Toaster (sonner): los errores del asistente se muestran en la página. Si hiciera falta un toast, añadir la ruta a `usesToasts` en `App.tsx`.
+> - Presupuesto de JS: el asistente es una ruta *lazy*. Lo pesado (`react-phone-number-input`, Turnstile) debe ir en su chunk, no en el layout público.

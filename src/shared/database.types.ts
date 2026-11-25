@@ -1411,6 +1411,11 @@ export type Database = {
       generate_booking_code: { Args: Record<PropertyKey, never>; Returns: string };
       get_company_by_slug: { Args: { p_slug: string }; Returns: Json };
       get_invitation: { Args: { p_token: string }; Returns: Json };
+      get_public_about: { Args: { p_branch_slug?: string; p_slug: string }; Returns: Json };
+      get_public_branch: { Args: { p_branch_slug: string; p_slug: string }; Returns: Json };
+      get_public_item: { Args: { p_branch_slug: string; p_item_id: string; p_slug: string }; Returns: Json };
+      get_public_site: { Args: { p_slug: string }; Returns: Json };
+      get_public_sitemap: { Args: { p_slug: string }; Returns: Json };
       get_slot_inputs: { Args: { p_branch: string; p_from: string; p_service: string; p_to: string }; Returns: Json };
       has_company_role: {
         Args: { p_company: string; p_roles?: Database['public']['Enums']['member_role'][] };
@@ -1445,6 +1450,85 @@ export type Database = {
         }[];
       };
       ping: { Args: Record<PropertyKey, never>; Returns: string };
+      public_about_visible: { Args: { p_branch?: string; p_company: string }; Returns: boolean };
+      public_branch: {
+        Args: { p_branch_slug: string; p_company: string };
+        Returns: {
+          address: string | null;
+          city: string | null;
+          company_id: string;
+          cover_image_path: string | null;
+          created_at: string;
+          email: string | null;
+          header: NonNullable<Json>;
+          id: string;
+          is_active: boolean;
+          lat: number | null;
+          lng: number | null;
+          maps_url: string | null;
+          name: string;
+          own_availability: boolean;
+          own_catalog: boolean;
+          phone: string | null;
+          show_sponsors: boolean;
+          slug: string;
+          sort_order: number;
+          timezone: string | null;
+          updated_at: string;
+          whatsapp: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'branches';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      public_catalog: {
+        Args: { p_branch: string };
+        Returns: {
+          description: string;
+          item: Json;
+          item_id: string;
+          kind: Database['public']['Enums']['catalog_kind'];
+          name: string;
+          sort_order: number;
+        }[];
+      };
+      public_company: {
+        Args: { p_slug: string };
+        Returns: {
+          booking_settings: NonNullable<Json>;
+          contact_email: string | null;
+          contact_phone: string | null;
+          created_at: string;
+          currency: string;
+          favicon_path: string | null;
+          footer: NonNullable<Json>;
+          hero_image_path: string | null;
+          id: string;
+          legal_name: string | null;
+          locale: string;
+          logo_path: string | null;
+          name: string;
+          primary_color: string | null;
+          secondary_color: string | null;
+          seo: NonNullable<Json>;
+          slug: string;
+          status: Database['public']['Enums']['company_status'];
+          tax_id: string | null;
+          timezone: string;
+          updated_at: string;
+          whatsapp: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'companies';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      public_socials: { Args: { p_branch: string; p_company: string }; Returns: Json };
       reorder_rows: { Args: { p_ids: string[]; p_table: string }; Returns: undefined };
       slug_status: { Args: { p_slug: string }; Returns: string };
       try_uuid: { Args: { p_value: string }; Returns: string };
