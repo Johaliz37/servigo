@@ -1,0 +1,14 @@
+/*
+ * Ajustes de react-phone-number-input. Van sin @layer, como su style.css: las utilidades de
+ * Tailwind (en una capa) no le ganan. El «icono» del país es su código (sin bandera de CDN).
+ */
+.PhoneInputCountryIcon,
+.PhoneInputCountryIcon--border {
+  width: auto;
+  height: auto;
+  background: transparent;
+  box-shadow: none;
+}
+.PhoneInputCountryIcon--border .PhoneInputCountryIconImg {
+  opacity: 1;
+}

@@ -7,7 +7,7 @@ import { FullPageSpinner } from '@client/components/common/Spinner';
 import { Component as BranchPage } from '@client/features/public/BranchPage';
 import { HomePage } from '@client/features/public/HomePage';
 import { ProductPage, ServicePage } from '@client/features/public/ItemPage';
-import { ComingSoonPage, Component as PublicLayout } from '@client/features/public/PublicLayout';
+import { Component as PublicLayout } from '@client/features/public/PublicLayout';
 
 const HydrateFallback = () => <FullPageSpinner />;
 
@@ -85,11 +85,10 @@ const companyRoutes: RouteObject[] = [
         Component: ProductPage,
       },
       { path: 'acerca', lazy: () => import('@client/features/public/AboutPage') },
-      // Fase 10: reserva y consulta.
-      ...['mis-reservas', 's/:branchSlug/reservar/*', 'reserva/:code'].map((path) => ({
-        path,
-        Component: ComingSoonPage,
-      })),
+      // Fase 10: reserva y consulta (chunks propios: teléfono, calendario y Turnstile).
+      { path: 's/:branchSlug/reservar/:serviceId?', lazy: () => import('@client/features/booking/BookingWizard') },
+      { path: 'reserva/:code', lazy: () => import('@client/features/booking/BookingPage') },
+      { path: 'mis-reservas', lazy: () => import('@client/features/booking/MyBookingsPage') },
       { path: '*', Component: NotFoundPage },
     ],
   },

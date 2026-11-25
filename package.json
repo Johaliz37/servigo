@@ -66,6 +66,7 @@
     "react-easy-crop": "^6.2.5",
     "react-hook-form": "7.92.0",
     "react-markdown": "^10.1.0",
+    "react-phone-number-input": "3.4.18",
     "react-router": "8.5.2",
     "rehype-sanitize": "^6.0.0",
     "rrule": "2.8.1",

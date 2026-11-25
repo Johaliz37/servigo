@@ -5,6 +5,7 @@ import type { AppEnv } from './env';
 import { buildHead } from './html';
 import { apiError, type Ctx } from './http';
 import { adminRoutes } from './routes/admin';
+import { bookingRoutes } from './routes/bookings';
 import { publicRoutes } from './routes/public';
 import { superadminRoutes } from './routes/superadmin';
 import { anonClient } from './supabase';
@@ -41,6 +42,7 @@ app.get('/api/health', async (c) => {
 app.get('/api/public/tenant', (c) => c.json(clientTenant(c), 200, { 'cache-control': 'no-store' }));
 
 app.route('/api/public', publicRoutes);
+app.route('/api/bookings', bookingRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/superadmin', superadminRoutes);
 

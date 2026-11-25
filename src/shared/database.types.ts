@@ -1328,6 +1328,7 @@ export type Database = {
       accept_invitation: { Args: { p_token: string }; Returns: Json };
       apply_availability_plan: { Args: { p_plan: Json }; Returns: undefined };
       can_access_branch: { Args: { p_branch: string; p_company: string }; Returns: boolean };
+      cancel_booking_public: { Args: { p_code: string; p_company: string }; Returns: Json };
       check_slug: { Args: { p_slug: string }; Returns: string };
       company_storage_usage: { Args: { p_company: string }; Returns: number };
       console_companies: {
@@ -1342,6 +1343,7 @@ export type Database = {
           status: Database['public']['Enums']['company_status'];
         }[];
       };
+      create_booking: { Args: { p_payload: Json }; Returns: Json };
       create_company: {
         Args: { p_currency?: string; p_name: string; p_owner_email: string; p_slug: string; p_timezone?: string };
         Returns: Json;
@@ -1408,7 +1410,10 @@ export type Database = {
           stock: number;
         }[];
       };
+      find_bookings: { Args: { p_company: string; p_email?: string; p_phone?: string }; Returns: Json };
       generate_booking_code: { Args: Record<PropertyKey, never>; Returns: string };
+      get_booking_form: { Args: { p_branch_slug: string; p_service_id: string; p_slug: string }; Returns: Json };
+      get_booking_public: { Args: { p_code: string; p_company: string }; Returns: Json };
       get_company_by_slug: { Args: { p_slug: string }; Returns: Json };
       get_invitation: { Args: { p_token: string }; Returns: Json };
       get_public_about: { Args: { p_branch_slug?: string; p_slug: string }; Returns: Json };
@@ -1436,6 +1441,7 @@ export type Database = {
           user_id: string;
         }[];
       };
+      mask_name: { Args: { p_name: string }; Returns: string };
       pick_discount: {
         Args: {
           p_at: string;
@@ -1530,9 +1536,35 @@ export type Database = {
       };
       public_socials: { Args: { p_branch: string; p_company: string }; Returns: Json };
       reorder_rows: { Args: { p_ids: string[]; p_table: string }; Returns: undefined };
+      service_fields: {
+        Args: { p_company: string; p_service: string };
+        Returns: {
+          company_id: string;
+          created_at: string;
+          help_text: string | null;
+          id: string;
+          is_active: boolean;
+          label: string;
+          options: NonNullable<Json>;
+          placeholder: string | null;
+          required: boolean;
+          service_id: string | null;
+          sort_order: number;
+          type: Database['public']['Enums']['field_type'];
+          updated_at: string;
+          validation: NonNullable<Json>;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'booking_fields';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       slug_status: { Args: { p_slug: string }; Returns: string };
       try_uuid: { Args: { p_value: string }; Returns: string };
       upsert_catalog_item: { Args: { p_payload: Json }; Returns: string };
+      validate_booking_answers: { Args: { p_answers: Json; p_company: string; p_service: string }; Returns: Json };
     };
     Enums: {
       availability_kind: 'open' | 'closed';

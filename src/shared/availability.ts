@@ -385,6 +385,8 @@ export interface Slot {
   start: string;
   end: string;
   remaining: number;
+  /** Capacidad de la ventana (`capacity_override` o la del servicio): la recibe `create_booking`. */
+  capacity: number;
 }
 
 export interface DaySlots {
@@ -471,7 +473,7 @@ export function computeSlots(query: SlotQuery): DaySlots[] {
           const date = dayKey(Math.floor(wall / DAY));
           let list = days.get(date);
           if (!list) days.set(date, (list = []));
-          list.push({ start: fastIso(start), end: fastIso(start + duration), remaining: capacity - used });
+          list.push({ start: fastIso(start), end: fastIso(start + duration), remaining: capacity - used, capacity });
         }
       }
       const next = wall + step;

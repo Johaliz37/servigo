@@ -1,7 +1,7 @@
 import { CheckIcon, ChevronDownIcon, MapPinIcon, MenuIcon } from 'lucide-react';
 import { Link, NavLink, Outlet, useParams } from 'react-router';
 import { aboutPath, branchPath, type PublicSite } from '@shared/public-site';
-import { Button, buttonVariants } from '@client/components/ui/button';
+import { buttonVariants } from '@client/components/ui/button';
 import { useCompany } from '@client/app/tenant-context';
 import { cn } from '@client/lib/utils';
 import { usePublicSite } from './api';
@@ -200,18 +200,5 @@ export function Component() {
       </main>
       <SiteFooter site={site.data} />
     </div>
-  );
-}
-
-/** Secciones públicas que llegan en la fase 10 (reserva, consulta). */
-export function ComingSoonPage() {
-  return (
-    <section className="mx-auto max-w-3xl px-4 py-20 text-center">
-      <h1 className="text-2xl font-semibold">Muy pronto</h1>
-      <p className="mt-4 text-muted-foreground">Esta sección estará disponible en breve.</p>
-      <Button variant="outline" className="mt-8" asChild>
-        <Link to="/">Volver al inicio</Link>
-      </Button>
-    </section>
   );
 }

@@ -349,7 +349,12 @@ describe('computeSlots', () => {
       bookings: [block('confirmed'), block('pending'), block('cancelled'), block('confirmed', 'otro')],
     });
     expect(computeSlots(q)[0]!.slots).toEqual([
-      { start: at('2026-11-18T09:00').toISOString(), end: at('2026-11-18T10:00').toISOString(), remaining: 1 },
+      {
+        start: at('2026-11-18T09:00').toISOString(),
+        end: at('2026-11-18T10:00').toISOString(),
+        remaining: 1,
+        capacity: 3,
+      },
     ]);
     // Con una reserva más, ya no hay cupo.
     expect(computeSlots({ ...q, bookings: [...q.bookings, block('confirmed')] })).toEqual([]);

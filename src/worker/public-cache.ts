@@ -87,6 +87,32 @@ export const publicReads = {
       p_slug: company.slug,
       p_branch_slug: branchSlug,
     }),
+  bookingForm: <T>(env: Env, company: TenantCompany, branchSlug: string, serviceId: string) =>
+    readPublic<T>(env, company, `booking-form/${encodeURIComponent(branchSlug)}/${serviceId}`, 'get_booking_form', {
+      p_slug: company.slug,
+      p_branch_slug: branchSlug,
+      p_service_id: serviceId,
+    }),
   sitemap: <T>(env: Env, company: TenantCompany) =>
     readPublic<T>(env, company, 'sitemap', 'get_public_sitemap', { p_slug: company.slug }),
 };
+
+// ---------------------------------------------------------------------------
+// Versión de los cupos por sede y servicio (fase 10): crear o cancelar una reserva la cambia,
+// así el horario recién ocupado deja de ofrecerse al instante y no al vencer los 30 s.
+// ---------------------------------------------------------------------------
+
+const slotsVersionKey = (companyId: string, branchId: string, serviceId: string) =>
+  new Request(`${ORIGIN}/${companyId}/slots-version/${branchId}/${serviceId}`);
+
+export async function slotsVersion(companyId: string, branchId: string, serviceId: string): Promise<string> {
+  const hit = await edgeCache()?.match(slotsVersionKey(companyId, branchId, serviceId));
+  return hit ? await hit.text() : '0';
+}
+
+export async function bumpSlotsVersion(companyId: string, branchId: string, serviceId: string): Promise<void> {
+  await edgeCache()?.put(
+    slotsVersionKey(companyId, branchId, serviceId),
+    new Response(String(Date.now()), { headers: { 'cache-control': `max-age=${VERSION_TTL_SECONDS}` } }),
+  );
+}
