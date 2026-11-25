@@ -190,4 +190,78 @@ describe('worker', () => {
     allowed = false;
     expect((await purge()).status).toBe(403);
   });
+
+  it('/api/public/slots valida la consulta, la empresa y calcula los cupos', async () => {
+    const BRANCH = '20000000-0000-4000-a000-000000000001';
+    const SERVICE = '30000000-0000-4000-a000-000000000001';
+    let companyId = 'c1';
+    let rpcBody: Record<string, string> = {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input instanceof Request ? input.url : input);
+        if (url.endsWith('/rpc/get_company_by_slug')) return Response.json(demoRow);
+        if (url.endsWith('/rpc/get_slot_inputs')) {
+          rpcBody = JSON.parse(String(init?.body ?? (input instanceof Request ? await input.text() : '{}')));
+          return Response.json({
+            company_id: companyId,
+            branch_id: BRANCH,
+            timezone: 'America/Bogota',
+            settings: { slot_step_minutes: 60, min_lead_minutes: 0, max_days_ahead: 3650 },
+            service: {
+              id: SERVICE,
+              duration_minutes: 60,
+              buffer_before_minutes: 0,
+              buffer_after_minutes: 0,
+              capacity: 1,
+            },
+            events: [
+              {
+                id: 'e1',
+                kind: 'open',
+                starts_at: '2030-01-07T14:00:00Z', // lunes 9:00 Bogotá
+                ends_at: '2030-01-07T17:00:00Z',
+                all_day: false,
+                timezone: 'America/Bogota',
+                rrule: 'FREQ=WEEKLY;BYDAY=MO',
+                exdates: [],
+                recurrence_parent_id: null,
+                recurrence_original_start: null,
+                service_ids: null,
+                capacity_override: null,
+              },
+            ],
+            bookings: [
+              {
+                block_starts_at: '2030-01-14T15:00:00Z',
+                block_ends_at: '2030-01-14T16:00:00Z',
+                service_id: SERVICE,
+                status: 'confirmed',
+              },
+            ],
+          });
+        }
+        return Response.json({ message: 'unexpected' }, { status: 500 });
+      }),
+    );
+    const get = (qs: string) => req(`http://demo.localhost:5273/api/public/slots?${qs}`);
+
+    expect((await get('branch=x&service=y&from=2030-01-01&to=2030-01-02')).status).toBe(400);
+    expect((await get(`branch=${BRANCH}&service=${SERVICE}&from=2030-01-10&to=2030-01-01`)).status).toBe(400);
+    expect((await get(`branch=${BRANCH}&service=${SERVICE}&from=2030-01-01&to=2030-03-01`)).status).toBe(400);
+
+    const ok = await get(`branch=${BRANCH}&service=${SERVICE}&from=2030-01-07&to=2030-01-14`);
+    expect(ok.status).toBe(200);
+    expect(rpcBody).toMatchObject({ p_from: '2030-01-06T00:00:00Z', p_to: '2030-01-16T00:00:00Z' });
+    const body = (await ok.json()) as { timezone: string; days: { date: string; slots: { start: string }[] }[] };
+    expect(body.timezone).toBe('America/Bogota');
+    expect(body.days.map((d) => [d.date, d.slots.length])).toEqual([
+      ['2030-01-07', 3],
+      ['2030-01-14', 2], // 10:00 ocupado
+    ]);
+
+    companyId = 'otra';
+    expect((await get(`branch=${BRANCH}&service=${SERVICE}&from=2030-01-07&to=2030-01-14`)).status).toBe(404);
+    expect((await req(`http://localhost:5273/api/public/slots?branch=${BRANCH}`)).status).toBe(404);
+  });
 });

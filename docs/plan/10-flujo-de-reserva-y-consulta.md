@@ -85,3 +85,12 @@ Pasos con barra de progreso, estado en la URL (`?step=&date=&slot=`) y en `sessi
 >   - patrón con `~` anclado.
 > - Los patrones son expresiones regulares de JS. En SQL se evalúan con la sintaxis de Postgres: lo común (clases, cuantificadores, alternancia) coincide.
 > - Lo que conviene probar con un caso de paridad, como en los precios: patrones con `\p{…}` (solo JS con `u`) o lookarounds.
+
+> **Heredado de la fase 08 (D26).**
+> - El paso «fecha y hora» usa `GET /api/public/slots`, que ya existe: fechas locales de la sede, máximo 31 días, caché de 30 s.
+> - Antes de `create_booking`, el Worker vuelve a calcular los cupos con `get_slot_inputs` y `computeSlots` **sin caché** y rechaza un inicio que no esté entre los cupos. Así se cubren la ventana, la antelación y el máximo de días.
+> - `create_booking` revalida la capacidad en SQL, de forma atómica (00 §3, regla 4):
+>   - bloquea las reservas `pending|confirmed` de la sede y el servicio que se solapan con el bloque (con buffers), por ejemplo con un `pg_advisory_xact_lock` por sede y servicio;
+>   - comprueba que el número de esas reservas sea menor que `capacity_override ?? capacity`.
+> - La capacidad de la ventana la calcula el motor; conviene pasarla a la RPC o recalcularla con las mismas reglas.
+

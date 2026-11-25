@@ -9,7 +9,7 @@ const TTL_SECONDS = 60;
 const NOT_FOUND_TTL_SECONDS = 10;
 
 /** Cache API del edge (no existe fuera del runtime de Workers, p. ej. en tests). */
-function edgeCache(): Cache | null {
+export function edgeCache(): Cache | null {
   return typeof caches !== 'undefined' && 'default' in caches
     ? (caches as unknown as { default: Cache }).default
     : null;

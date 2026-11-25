@@ -27,8 +27,8 @@ const authRoutes = (base: 'admin' | 'console'): RouteObject => ({
 
 const adminPages = () => import('@client/features/admin/pages');
 
-// Secciones de las fases 06–12: muestran "En construcción" hasta que se implementen.
-const PLACEHOLDER_PATHS = ['reservas', 'clientes', 'calendario'];
+// Secciones de las fases 11–12: muestran "En construcción" hasta que se implementen.
+const PLACEHOLDER_PATHS = ['reservas', 'clientes'];
 
 // Fase 06: catálogo (listados, ficha con pestañas y catálogo por sede).
 const catalogList = () => import('@client/features/catalog/CatalogListPage');
@@ -41,6 +41,8 @@ const CATALOG_ROUTES: RouteObject[] = [
   { path: 'sedes/:id/catalogo', lazy: () => import('@client/features/branches/BranchCatalogPage') },
   // Fase 07: información adicional (constructor de formularios).
   { path: 'formularios', lazy: () => import('@client/features/forms/FormsPage') },
+  // Fase 08: calendario de disponibilidad (FullCalendar solo se descarga en esta ruta).
+  { path: 'calendario', lazy: () => import('@client/features/calendar/CalendarPage') },
 ].map((route) => ({ ...route, ErrorBoundary: RouteError }));
 
 // Fase 05: empresa, sedes y contenido del sitio.
