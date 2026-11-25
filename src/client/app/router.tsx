@@ -34,8 +34,14 @@ const authRoutes = (base: 'admin' | 'console'): RouteObject => ({
 
 const adminPages = () => import('@client/features/admin/pages');
 
-// Secciones de las fases 11–12: muestran "En construcción" hasta que se implementen.
-const PLACEHOLDER_PATHS = ['reservas', 'clientes'];
+// Fase 11: gestión de reservas y clientes.
+const BOOKING_ROUTES: RouteObject[] = [
+  { path: 'reservas', lazy: () => import('@client/features/bookings/BookingsPage') },
+  { path: 'reservas/nueva', lazy: () => import('@client/features/bookings/NewBookingPage') },
+  { path: 'reservas/agenda', lazy: () => import('@client/features/bookings/AgendaPage') },
+  { path: 'reservas/:id', lazy: () => import('@client/features/bookings/BookingDetailPage') },
+  { path: 'clientes', lazy: () => import('@client/features/bookings/CustomersPage') },
+].map((route) => ({ ...route, ErrorBoundary: RouteError }));
 
 // Fase 06: catálogo (listados, ficha con pestañas y catálogo por sede).
 const catalogList = () => import('@client/features/catalog/CatalogListPage');
@@ -100,11 +106,7 @@ const companyRoutes: RouteObject[] = [
     HydrateFallback,
     children: [
       { index: true, lazy: async () => ({ Component: (await adminPages()).DashboardPage }) },
-      ...PLACEHOLDER_PATHS.map((path) => ({
-        path,
-        lazy: async () => ({ Component: (await adminPages()).SectionPlaceholder }),
-        ErrorBoundary: RouteError,
-      })),
+      ...BOOKING_ROUTES,
       ...CONTENT_ROUTES,
       ...CATALOG_ROUTES,
       {

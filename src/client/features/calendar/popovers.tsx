@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { CopyIcon, PencilIcon, RepeatIcon, Trash2Icon, UsersIcon, XIcon } from 'lucide-react';
+import { CopyIcon, PencilIcon, RepeatIcon, Trash2Icon, XIcon } from 'lucide-react';
 import type { AvailabilityKind } from '@shared/availability';
 import type { EventRow } from '@shared/calendar';
 import { Badge } from '@client/components/ui/badge';
@@ -7,7 +7,6 @@ import { Button } from '@client/components/ui/button';
 import { Input } from '@client/components/ui/input';
 import { Popover, PopoverAnchor, PopoverContent } from '@client/components/ui/popover';
 import { cn } from '@client/lib/utils';
-import type { CalendarBooking } from './api';
 import { describeRow, displayTitle, formatWhen, KIND_COLORS, KIND_LABELS } from './model';
 
 export interface Point {
@@ -207,51 +206,6 @@ export function EventDetails({
         )}
         {row.notes && <p className="pt-1 whitespace-pre-line text-muted-foreground">{row.notes}</p>}
       </dl>
-    </div>
-  );
-}
-
-const STATUS_LABELS: Record<CalendarBooking['status'], string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmada',
-  completed: 'Completada',
-  cancelled: 'Cancelada',
-  no_show: 'No asistió',
-};
-
-/** Detalle básico de una reserva (la gestión completa llega en la fase 11). */
-export function BookingDetails({
-  booking,
-  tz,
-  onClose,
-}: {
-  booking: CalendarBooking;
-  tz: string;
-  onClose: () => void;
-}) {
-  return (
-    <div className="p-4">
-      <div className="-mt-2 -mr-2 flex justify-end">
-        <Button variant="ghost" size="icon" className="size-8" onClick={onClose} aria-label="Cerrar">
-          <XIcon />
-        </Button>
-      </div>
-      <div className="flex gap-3 outline-none" data-autofocus tabIndex={-1}>
-        <UsersIcon className="mt-1 size-4 shrink-0 text-primary" aria-hidden />
-        <div className="min-w-0 space-y-1">
-          <h2 className="text-lg leading-tight font-medium break-words">{booking.customer_name}</h2>
-          <p className="text-sm">{booking.service_name}</p>
-          <p className="text-sm text-muted-foreground">
-            {formatWhen(Date.parse(booking.starts_at), Date.parse(booking.ends_at), false, tz)}
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Badge variant="secondary">{STATUS_LABELS[booking.status]}</Badge>
-            <Badge variant="outline" className="font-mono">
-              {booking.code.slice(0, 4)}-{booking.code.slice(4)}
-            </Badge>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

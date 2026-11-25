@@ -54,6 +54,11 @@ export function errorMessage(error: unknown): string {
   if (e.code && AUTH_MESSAGES[e.code]) return AUTH_MESSAGES[e.code] as string;
   // `raise exception` de nuestras funciones: el mensaje ya está en español.
   if (e.code === 'P0001' && e.message) return e.message;
+  // Reservas (fases 10–11): SV001 cupo, SV002 productos, SV003 datos, SV004 no disponible,
+  // SV005 cancelar, SV006 transición. El mensaje ya está en español.
+  if (e.code?.startsWith('SV') && e.message) {
+    return e.message === 'SLOT_TAKEN' ? 'Ese horario ya está lleno. Elige otro.' : e.message;
+  }
   // Triggers propios con mensaje en español (p. ej. slug reservado).
   if (e.code === '23514' && e.message && /[áéíóúñ]|reservado|debe/i.test(e.message)) return e.message;
   if (e.code === '23505' && e.message) {

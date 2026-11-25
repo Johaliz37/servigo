@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import { es } from 'react-day-picker/locale';
 import { AlertCircleIcon, GlobeIcon } from 'lucide-react';
-import { localDate } from '@shared/availability';
+import { localDate, type DaySlots } from '@shared/availability';
 import { DAY_PART_LABELS, dayPart, formatTime } from '@shared/booking';
 import { Alert, AlertDescription } from '@client/components/ui/alert';
 import { Calendar } from '@client/components/ui/calendar';
 import { Skeleton } from '@client/components/ui/skeleton';
 import { cn } from '@client/lib/utils';
 import { useMonthSlots } from './api';
+import { monthRange } from './month';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -15,13 +16,6 @@ const fromYmd = (s: string) => {
   const [y, m, d] = s.split('-').map(Number) as [number, number, number];
   return new Date(y, m - 1, d);
 };
-
-/** Primer y último día (inclusive) del mes de `month` ('YYYY-MM'). */
-function monthRange(month: string): { from: string; to: string } {
-  const [y, m] = month.split('-').map(Number) as [number, number];
-  const last = new Date(y, m, 0).getDate();
-  return { from: `${month}-01`, to: `${month}-${pad(last)}` };
-}
 
 /**
  * Paso 2 (fase 10 §1): calendario del mes con los días sin cupo deshabilitados (una consulta
@@ -48,9 +42,57 @@ export function DateStep({
   const [today] = useState(() => localDate(Date.now(), timezone));
   const [month, setMonth] = useState((date ?? today).slice(0, 7));
   const range = monthRange(month);
-  const from = range.from < today ? today : range.from;
-  const slots = useMonthSlots(branchId, serviceId, from, range.to);
+  const slots = useMonthSlots(branchId, serviceId, range.from < today ? today : range.from, range.to);
+  return (
+    <SlotPicker
+      timezone={timezone}
+      today={today}
+      month={month}
+      onMonthChange={setMonth}
+      slots={slots}
+      date={date}
+      slot={slot}
+      onPick={onPick}
+      notice={notice}
+    />
+  );
+}
 
+/** Lo que el selector necesita de la consulta de cupos (pública o del panel). */
+export interface SlotsQueryLike {
+  data: { days: DaySlots[] } | undefined;
+  isPending: boolean;
+  isError: boolean;
+  isFetching: boolean;
+  isPlaceholderData: boolean;
+}
+
+/**
+ * Calendario + horas por franja. Lo usan el asistente público y el panel (reserva manual y
+ * reprogramar, fase 11), cada uno con su fuente de cupos.
+ */
+export function SlotPicker({
+  timezone,
+  today,
+  month,
+  onMonthChange,
+  slots,
+  date,
+  slot,
+  onPick,
+  notice,
+}: {
+  timezone: string;
+  /** Primer día elegible ('YYYY-MM-DD', zona de la sede). */
+  today: string;
+  month: string;
+  onMonthChange: (month: string) => void;
+  slots: SlotsQueryLike;
+  date: string | null;
+  slot: string | null;
+  onPick: (date: string, slot: string | null) => void;
+  notice: string | null;
+}) {
   const byDate = useMemo(() => new Map((slots.data?.days ?? []).map((d) => [d.date, d.slots])), [slots.data]);
   const daySlots = date ? (byDate.get(date) ?? []) : [];
   const groups = (['morning', 'afternoon', 'evening'] as const)
@@ -85,7 +127,7 @@ export function DateStep({
             mode="single"
             locale={es}
             month={fromYmd(`${month}-01`)}
-            onMonthChange={(m) => setMonth(ymd(m).slice(0, 7))}
+            onMonthChange={(m) => onMonthChange(ymd(m).slice(0, 7))}
             startMonth={fromYmd(today)}
             selected={date ? fromYmd(date) : undefined}
             onSelect={(d) => d && onPick(ymd(d), null)}

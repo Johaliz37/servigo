@@ -36,6 +36,7 @@ import { signOut, useSession } from '@client/features/auth/session';
 import { BranchProvider, useSelectedBranch } from './branch-context';
 import { ADMIN_NAV } from './nav';
 import { usePurgePublicOnSave } from './purge-public';
+import { useBookingsRealtime, usePendingCount } from '@client/features/bookings/realtime';
 import { RequireMember } from './RequireMember';
 
 const ALL = '__all__';
@@ -61,6 +62,21 @@ function BranchSelector() {
         ))}
       </SelectContent>
     </Select>
+  );
+}
+
+/** Contador de pendientes en el menú lateral. */
+export function PendingBadge() {
+  const { selectedId } = useSelectedBranch();
+  const pending = usePendingCount(selectedId);
+  if (!pending.data) return null;
+  return (
+    <span
+      className="ml-auto rounded-full bg-amber-500 px-1.5 text-xs font-medium text-white tabular-nums group-data-[collapsible=icon]:hidden"
+      aria-label={`${pending.data} pendientes`}
+    >
+      {pending.data}
+    </span>
   );
 }
 
@@ -130,7 +146,7 @@ function AdminSidebar() {
   const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="print:hidden">
       <SidebarHeader>
         <CompanyBrand />
       </SidebarHeader>
@@ -154,6 +170,7 @@ function AdminSidebar() {
                           <NavLink to={to} end={!item.path} onClick={() => isMobile && setOpenMobile(false)}>
                             <item.icon aria-hidden />
                             <span>{item.label}</span>
+                            {item.path === 'reservas' && <PendingBadge />}
                           </NavLink>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -180,12 +197,13 @@ function AdminSidebar() {
 function AdminShell() {
   useSystemDarkMode();
   usePurgePublicOnSave();
+  useBookingsRealtime();
   return (
     <BranchProvider>
       <SidebarProvider>
         <AdminSidebar />
         <SidebarInset>
-          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
+          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur print:hidden">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
             <BranchSelector />
