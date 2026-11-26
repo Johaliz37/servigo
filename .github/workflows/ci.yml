@@ -143,4 +143,6 @@ jobs:
         with:
           name: lighthouse
           path: .lighthouseci/
+          # La carpeta empieza por punto: upload-artifact la omite si no se pide.
+          include-hidden-files: true
           retention-days: 14
