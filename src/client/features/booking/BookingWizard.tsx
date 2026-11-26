@@ -343,6 +343,7 @@ export function Component() {
 
   async function submit() {
     if (!turnstile || !slot || submitting) return;
+    if (!draft.privacy_consent) return go('datos');
     setSubmitting(true);
     setError(null);
     try {
@@ -356,6 +357,7 @@ export function Component() {
           .map(([product_id, quantity]) => ({ product_id, quantity })),
         answers: draft.answers,
         accept_terms: draft.accept_terms,
+        privacy_consent: true,
         turnstile,
       });
       saveToken(company.id, created.code, created.token);
@@ -436,6 +438,7 @@ export function Component() {
               fields={fields}
               requireEmail={data.settings.require_email}
               termsText={data.settings.terms_text}
+              companyName={company.name}
               draft={draft}
               onSubmit={(values) => {
                 update(values);

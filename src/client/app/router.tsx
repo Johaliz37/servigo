@@ -65,6 +65,7 @@ const CONTENT_ROUTES: RouteObject[] = [
   { path: 'contenido/patrocinadores', lazy: () => import('@client/features/content/SponsorsPage') },
   { path: 'contenido/redes', lazy: () => import('@client/features/content/SocialLinksPage') },
   { path: 'contenido/footer', lazy: () => import('@client/features/content/FooterPage') },
+  { path: 'contenido/privacidad', lazy: () => import('@client/features/content/PrivacyPolicyPage') },
   { path: 'configuracion/empresa', lazy: () => import('@client/features/settings/CompanyProfilePage') },
   { path: 'configuracion/reservas', lazy: () => import('@client/features/settings/BookingSettingsPage') },
 ].map((route) => ({ ...route, ErrorBoundary: RouteError }));
@@ -91,6 +92,7 @@ const companyRoutes: RouteObject[] = [
         Component: ProductPage,
       },
       { path: 'acerca', lazy: () => import('@client/features/public/AboutPage') },
+      { path: 'privacidad', lazy: () => import('@client/features/public/PrivacyPage') },
       // Fase 10: reserva y consulta (chunks propios: teléfono, calendario y Turnstile).
       { path: 's/:branchSlug/reservar/:serviceId?', lazy: () => import('@client/features/booking/BookingWizard') },
       { path: 'reserva/:code', lazy: () => import('@client/features/booking/BookingPage') },

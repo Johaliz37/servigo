@@ -467,7 +467,8 @@ describe('computeSlots', () => {
       return performance.now() - t0;
     });
     expect(computeSlots(q).length).toBe(31);
-    expect(Math.min(...samples)).toBeLessThan(5);
+    const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env;
+    expect(Math.min(...samples)).toBeLessThan(Number(env?.PERF_BUDGET_MS ?? 5));
   });
 
   it('toSlotQuery adapta la salida de get_slot_inputs', () => {

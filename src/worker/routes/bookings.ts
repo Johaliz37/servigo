@@ -178,6 +178,7 @@ bookingRoutes.post('/', async (c) => {
         customer: body.customer,
         items: body.items,
         answers: toAnswerRows(fields, answers.data as Answers).map((a) => ({ field_id: a.field_id, value: a.value })),
+        privacy_consent: body.privacy_consent,
       },
     },
   );

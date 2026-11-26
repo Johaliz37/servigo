@@ -5,7 +5,19 @@ import { Link, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { searchFilter } from '@shared/booking-admin';
 import { formatMoney } from '@shared/format';
+import { isAnonymizedPhone } from '@shared/privacy';
 import { PageHeader } from '@client/components/common/PageHeader';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@client/components/ui/alert-dialog';
 import { Button } from '@client/components/ui/button';
 import { Input } from '@client/components/ui/input';
 import { Label } from '@client/components/ui/label';
@@ -14,6 +26,7 @@ import { Skeleton } from '@client/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@client/components/ui/table';
 import { Textarea } from '@client/components/ui/textarea';
 import { useCompany } from '@client/app/tenant-context';
+import { useMembership } from '@client/features/auth/membership';
 import { toastError } from '@client/lib/errors';
 import { supabase } from '@client/lib/supabase';
 import { useCustomerBookings } from './api';
@@ -154,7 +167,9 @@ export function Component() {
                       {c.name}
                     </button>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap tabular-nums">{c.phone}</TableCell>
+                  <TableCell className="whitespace-nowrap tabular-nums">
+                    {isAnonymizedPhone(c.phone) ? '—' : c.phone}
+                  </TableCell>
                   <TableCell className="max-w-48 truncate">{c.email}</TableCell>
                   <TableCell className="text-right tabular-nums">{c.bookings_count}</TableCell>
                   <TableCell className="whitespace-nowrap">
@@ -195,7 +210,9 @@ export function Component() {
         <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-lg">
           <SheetHeader className="p-0">
             <SheetTitle>{open?.name}</SheetTitle>
-            <SheetDescription>{open?.phone}</SheetDescription>
+            <SheetDescription>
+              {open && isAnonymizedPhone(open.phone) ? 'Datos personales eliminados' : open?.phone}
+            </SheetDescription>
           </SheetHeader>
           {open && <CustomerDetail key={open.id} customer={open} />}
         </SheetContent>
@@ -207,6 +224,9 @@ export function Component() {
 function CustomerDetail({ customer }: { customer: CustomerRow }) {
   const company = useCompany();
   const queryClient = useQueryClient();
+  const { role } = useMembership();
+  const anonymized = isAnonymizedPhone(customer.phone);
+  const canErase = (role === 'owner' || role === 'platform_admin') && !anonymized;
   const [name, setName] = useState(customer.name);
   const [email, setEmail] = useState(customer.email ?? '');
   const [notes, setNotes] = useState(customer.notes ?? '');
@@ -222,6 +242,19 @@ function CustomerDetail({ customer }: { customer: CustomerRow }) {
     onSuccess: () => {
       toast.success('Cliente actualizado');
       void queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: toastError,
+  });
+  // Derecho de supresión (Ley 1581, D31): borra datos personales y conserva las cifras.
+  const erase = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('anonymize_customer', { p_customer: customer.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Datos personales eliminados');
+      void queryClient.invalidateQueries({ queryKey: ['customers'] });
+      void queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
     onError: toastError,
   });
@@ -247,39 +280,46 @@ function CustomerDetail({ customer }: { customer: CustomerRow }) {
         </div>
       </dl>
 
-      <form
-        className="space-y-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!name.trim()) return void toast.error('Escribe el nombre');
-          save.mutate();
-        }}
-      >
-        <div className="grid gap-1.5">
-          <Label htmlFor="cu-name">Nombre</Label>
-          <Input id="cu-name" value={name} maxLength={160} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="cu-email">Correo</Label>
-          <Input id="cu-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="cu-notes">Notas</Label>
-          <Textarea
-            id="cu-notes"
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Preferencias, alergias…"
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          El teléfono identifica al cliente: para cambiarlo, edita una de sus reservas.
+      {anonymized ? (
+        <p className="rounded-lg border p-3 text-sm text-muted-foreground">
+          Los datos personales de este cliente se eliminaron a petición suya. Sus reservas se conservan sin nombre,
+          teléfono ni correo.
         </p>
-        <Button type="submit" disabled={save.isPending}>
-          Guardar
-        </Button>
-      </form>
+      ) : (
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!name.trim()) return void toast.error('Escribe el nombre');
+            save.mutate();
+          }}
+        >
+          <div className="grid gap-1.5">
+            <Label htmlFor="cu-name">Nombre</Label>
+            <Input id="cu-name" value={name} maxLength={160} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="cu-email">Correo</Label>
+            <Input id="cu-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="cu-notes">Notas</Label>
+            <Textarea
+              id="cu-notes"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Preferencias, alergias…"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            El teléfono identifica al cliente: para cambiarlo, edita una de sus reservas.
+          </p>
+          <Button type="submit" disabled={save.isPending}>
+            Guardar
+          </Button>
+        </form>
+      )}
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-muted-foreground">Historial de reservas</h3>
@@ -298,6 +338,42 @@ function CustomerDetail({ customer }: { customer: CustomerRow }) {
           </ul>
         )}
       </section>
+
+      {canErase && (
+        <section className="space-y-2 rounded-lg border border-destructive/40 p-4">
+          <h3 className="text-sm font-medium">Eliminar datos personales</h3>
+          <p className="text-sm text-muted-foreground">
+            Si el cliente lo pide, borra su nombre, teléfono, correo, notas y respuestas de todas sus reservas. Las
+            reservas y sus cifras se conservan. No se puede deshacer.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={erase.isPending}>
+                Eliminar datos de {customer.name}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar los datos de {customer.name}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Se borrarán sus datos personales de {customer.bookings_count}{' '}
+                  {customer.bookings_count === 1 ? 'reserva' : 'reservas'}. Ya no podrá consultarlas con su teléfono.
+                  Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={() => erase.mutate()}
+                >
+                  Eliminar datos
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </section>
+      )}
     </div>
   );
 }

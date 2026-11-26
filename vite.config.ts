@@ -54,4 +54,6 @@ export default defineConfig(({ mode }) => ({
     // `*.localhost` resuelve a 127.0.0.1 en Chrome/Edge/Firefox (00 §4).
     allowedHosts: ['.localhost'],
   },
+  // `pnpm preview` (build de producción con el Worker en workerd): Lighthouse CI (fase 13).
+  preview: { port: 4273, strictPort: true, allowedHosts: ['.localhost'] },
 }));

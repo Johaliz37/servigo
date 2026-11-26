@@ -38,6 +38,7 @@ async function webBooking(request: APIRequestContext, from: string, to: string) 
           email: '',
           notes: '',
         },
+        privacy_consent: true,
         turnstile: 'XXXX.DUMMY.TOKEN.XXXX',
       },
     });

@@ -19,7 +19,7 @@ async function sectionOrder(page: Page): Promise<string[]> {
   );
 }
 
-test('empresa con 2 sedes: elige sede y ve 3.1 → 3.5 en orden', async ({ page }) => {
+test('empresa con 2 sedes: elige sede y ve 3.1 → 3.5 en orden', { tag: '@mobile' }, async ({ page }) => {
   await page.goto(`${DEMO}/`);
   await expect(page.getByRole('heading', { level: 1, name: 'Barbería Demo' })).toBeVisible();
   const cards = page.getByRole('region', { name: 'Elige tu sede' }).getByRole('link');
@@ -67,7 +67,7 @@ test('empresa con 2 sedes: elige sede y ve 3.1 → 3.5 en orden', async ({ page 
   await expect(page.getByRole('region', { name: 'Patrocinadores' })).toHaveCount(0);
 });
 
-test('empresa con 1 sede entra directo', async ({ page }) => {
+test('empresa con 1 sede entra directo', { tag: '@mobile' }, async ({ page }) => {
   await page.goto(`${SPA}/`);
   await expect(page).toHaveURL(`${SPA}/s/principal`);
   await expect(page.getByRole('heading', { level: 1, name: 'Spa Luna' })).toBeVisible();
@@ -82,7 +82,7 @@ test('empresa con 1 sede entra directo', async ({ page }) => {
   await expect(masaje).toContainText('−15 % · Hasta el');
 });
 
-test('ficha de servicio: detalles, complementos y meta para compartir', async ({ page }) => {
+test('ficha de servicio: detalles, complementos y meta para compartir', { tag: '@mobile' }, async ({ page }) => {
   await page.goto(`${DEMO}/s/centro`);
   await page
     .getByRole('region', { name: 'Servicios' })

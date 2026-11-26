@@ -91,6 +91,7 @@ const validBooking = {
   service_id: '30000000-0000-4000-a000-000000000001',
   starts_at: '2026-12-01T14:00:00.000Z',
   customer: { name: 'Ana', phone: '+573001234567', email: '', notes: '' },
+  privacy_consent: true,
   turnstile: 'tok',
 };
 

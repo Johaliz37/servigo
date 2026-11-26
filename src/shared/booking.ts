@@ -69,6 +69,8 @@ export const bookingRequestSchema = z.object({
   /** Respuestas por id de campo; las valida `buildAnswersSchema` con los campos reales. */
   answers: z.record(z.string(), z.unknown()).default({}),
   accept_terms: z.boolean().default(false),
+  /** Autorización de tratamiento de datos (Ley 1581, D31): obligatoria. */
+  privacy_consent: z.literal(true, { error: 'Debes autorizar el tratamiento de tus datos personales' }),
   turnstile: z.string().min(1, { error: 'Completa la verificación' }).max(4096),
 });
 export type BookingRequest = z.input<typeof bookingRequestSchema>;

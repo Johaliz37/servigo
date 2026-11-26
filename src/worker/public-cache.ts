@@ -93,6 +93,8 @@ export const publicReads = {
       p_branch_slug: branchSlug,
       p_service_id: serviceId,
     }),
+  privacy: <T>(env: Env, company: TenantCompany) =>
+    readPublic<T>(env, company, 'privacy', 'get_public_privacy', { p_slug: company.slug }),
   sitemap: <T>(env: Env, company: TenantCompany) =>
     readPublic<T>(env, company, 'sitemap', 'get_public_sitemap', { p_slug: company.slug }),
 };

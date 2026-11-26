@@ -41,6 +41,7 @@ async function webBooking(request: APIRequestContext, name: string, daysAhead = 
         service_id: BARBA,
         starts_at: start,
         customer: { name, phone: randomPhone(), email: '', notes: '' },
+        privacy_consent: true,
         turnstile: 'XXXX.DUMMY.TOKEN.XXXX',
       },
     });
@@ -200,6 +201,8 @@ test('calendario: clic abre el detalle y arrastrar una reserva la reprograma', a
   await expect(event).toHaveClass(/fc-event-draggable/);
   // Arrastrar 1 h (dos franjas de 30 min) hacia abajo o hacia arriba según la hora.
   const hour = new Date(Date.parse(start) - 5 * 3_600_000).getUTCHours();
+  // Centrado: cerca del borde de la ventana el arrastre terminaba fuera de la vista (intermitente).
+  await event.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   const box = (await event.boundingBox())!;
   const lane = (await page.locator('.fc-timegrid-slot-lane').first().boundingBox())!;
   const dy = (hour >= 16 ? -2 : 2) * lane.height;

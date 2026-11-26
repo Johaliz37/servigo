@@ -10,6 +10,8 @@ export interface BookingDraft {
   customer: CustomerInput;
   answers: Record<string, unknown>;
   accept_terms: boolean;
+  /** Autorización de tratamiento de datos (D31). */
+  privacy_consent: boolean;
 }
 
 export const emptyDraft = (): BookingDraft => ({
@@ -17,6 +19,7 @@ export const emptyDraft = (): BookingDraft => ({
   customer: { name: '', phone: '', email: '', notes: '' },
   answers: {},
   accept_terms: false,
+  privacy_consent: false,
 });
 
 const keyOf = (companyId: string, branchSlug: string, serviceId: string) =>

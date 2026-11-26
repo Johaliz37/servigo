@@ -49,7 +49,13 @@ Los correos (invitaciones, recuperación de contraseña) llegan a Mailpit.
 
 - Plataforma: https://servigo.roquintech.com (consola en `/console`); empresas en `https://{slug}.roquintech.com`.
 - Se despliega sola al fusionar en `main` (workflow `deploy`: migraciones, build, Worker `servigo-production` y smoke test). Nunca se despliega desde una máquina local.
-- Operación (revertir, rotar secretos, backups y restauración, superadmin, DNS): [docs/runbook.md](docs/runbook.md).
+- Operación (revertir, rotar secretos, backups y restauración, superadmin, DNS, capacidad, incidentes y checklist de lanzamiento): [docs/runbook.md](docs/runbook.md).
+
+### Documentación
+
+- [Manual para empresas](docs/manual-empresa.md): configurar y operar una empresa paso a paso. Las capturas se regeneran con `node scripts/manual-screenshots.mjs`, con el seed y `pnpm dev`.
+- [Arquitectura](docs/arquitectura.md), [modelo de datos](docs/er.md) y [decisiones](docs/plan/00-arquitectura-y-decisiones.md).
+- [CHANGELOG](CHANGELOG.md).
 
 ### Opción Docker para la app
 

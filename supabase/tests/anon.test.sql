@@ -20,7 +20,7 @@ select is(
         where p.pronamespace = 'public'::regnamespace and has_function_privilege('anon', p.oid, 'execute')
         order by 1),
   array['get_booking_form', 'get_company_by_slug', 'get_invitation', 'get_public_about', 'get_public_branch', 'get_public_item',
-        'get_public_site', 'get_public_sitemap', 'ping']::text[],
+        'get_public_privacy', 'get_public_site', 'get_public_sitemap', 'ping']::text[],
   'anon solo ejecuta las RPC públicas');
 
 select is(

@@ -105,6 +105,7 @@ publicRoutes.use('/branch/*', requireCompany);
 publicRoutes.use('/item/*', requireCompany);
 publicRoutes.use('/about', requireCompany);
 publicRoutes.use('/booking-form/*', requireCompany);
+publicRoutes.use('/privacy', requireCompany);
 
 publicRoutes.get('/site', (c) =>
   sendPublic(c, () => publicReads.site(c.env, c.get('company')!), 'Esta empresa no existe'),
@@ -133,6 +134,11 @@ publicRoutes.get('/about', (c) => {
   if (slug && !slug.success) return apiError(c, 404, 'not_found', 'Esta sede no existe');
   return sendPublic(c, () => publicReads.about(c.env, c.get('company')!, slug?.data ?? null), 'Esta empresa no existe');
 });
+
+/** Política de privacidad (fase 13, D31): `policy` null = la SPA usa la plantilla. */
+publicRoutes.get('/privacy', (c) =>
+  sendPublic(c, () => publicReads.privacy(c.env, c.get('company')!), 'Esta empresa no existe'),
+);
 
 /** Lo que el asistente de reserva necesita para un servicio (fase 10): precio, complementos y campos. */
 publicRoutes.get('/booking-form/:branchSlug/:serviceId', (c) => {

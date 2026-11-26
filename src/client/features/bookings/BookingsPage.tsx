@@ -24,6 +24,7 @@ import {
   type TargetStatus,
 } from '@shared/booking-admin';
 import { formatMoney } from '@shared/format';
+import { isAnonymizedPhone } from '@shared/privacy';
 import { PageHeader } from '@client/components/common/PageHeader';
 import { Button } from '@client/components/ui/button';
 import { Checkbox } from '@client/components/ui/checkbox';
@@ -188,7 +189,7 @@ export function Component() {
           >
             {t.label}
             {t.id === 'pending' && (pending.data ?? 0) > 0 && (
-              <span className="rounded-full bg-amber-500 px-1.5 text-xs text-white tabular-nums">{pending.data}</span>
+              <span className="rounded-full bg-amber-700 px-1.5 text-xs text-white tabular-nums">{pending.data}</span>
             )}
           </button>
         ))}
@@ -196,7 +197,7 @@ export function Component() {
 
       <form
         role="search"
-        className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,2fr)_repeat(3,minmax(9rem,1fr))_auto_auto]"
+        className="mb-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-[minmax(12rem,2fr)_repeat(3,minmax(9rem,1fr))_auto_auto]"
         onSubmit={(e) => {
           e.preventDefault();
           update({ q: search.trim() || null });
@@ -476,18 +477,24 @@ function InboxTable({
                   <TableCell className="whitespace-nowrap">{formatWhenShort(r.starts_at, tz)}</TableCell>
                   <TableCell className="max-w-48 truncate">{r.customer_name}</TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <a href={`tel:${r.customer_phone}`} className="hover:underline">
-                      {r.customer_phone}
-                    </a>
-                    <a
-                      href={whatsappLink(r.customer_phone)}
-                      target="_blank"
-                      rel="noopener"
-                      className="ml-1 inline-flex align-middle text-muted-foreground hover:text-foreground"
-                      aria-label={`WhatsApp a ${r.customer_name}`}
-                    >
-                      <MessageCircleIcon className="size-4" aria-hidden />
-                    </a>
+                    {isAnonymizedPhone(r.customer_phone) ? (
+                      '—'
+                    ) : (
+                      <>
+                        <a href={`tel:${r.customer_phone}`} className="hover:underline">
+                          {r.customer_phone}
+                        </a>
+                        <a
+                          href={whatsappLink(r.customer_phone)}
+                          target="_blank"
+                          rel="noopener"
+                          className="ml-1 inline-flex align-middle text-muted-foreground hover:text-foreground"
+                          aria-label={`WhatsApp a ${r.customer_name}`}
+                        >
+                          <MessageCircleIcon className="size-4" aria-hidden />
+                        </a>
+                      </>
+                    )}
                   </TableCell>
                   <TableCell className="max-w-40 truncate">{r.service_name}</TableCell>
                   <TableCell className="whitespace-nowrap">{r.branch?.name}</TableCell>

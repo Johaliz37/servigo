@@ -6,5 +6,7 @@ export type AppEnv = {
     tenant: ResolvedTenant;
     /** Empresa del subdominio (solo si `tenant.type === 'company'` y existe). */
     company: TenantCompany | null;
+    /** Nonce de la CSP de esta respuesta (scripts inline del HTML). */
+    nonce: string;
   };
 };

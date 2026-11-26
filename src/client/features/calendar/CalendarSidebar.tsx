@@ -214,7 +214,7 @@ export function CalendarSidebar({
           {SHORTCUTS.map(([k, label]) => (
             <div key={k} className="contents">
               <dt>
-                <kbd className="rounded border bg-muted px-1 font-mono">{k}</kbd>
+                <kbd className="rounded border bg-muted px-1 font-mono text-foreground">{k}</kbd>
               </dt>
               <dd>{label}</dd>
             </div>

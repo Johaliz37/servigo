@@ -102,6 +102,7 @@ import {
 } from './model';
 import { EventDetails, PointPopover, QuickCreate, type Point } from './popovers';
 import { canReschedule } from '@shared/booking-admin';
+import { readableForeground } from '@shared/color';
 import { BookingDetail } from '@client/features/bookings/BookingDetail';
 import { MoveBookingDialog, type MoveTarget } from '@client/features/bookings/MoveBookingDialog';
 import { useScopePrompt } from './ScopeDialog';
@@ -307,7 +308,8 @@ function CalendarView({
         allDay: row.all_day,
         backgroundColor: color,
         borderColor: color,
-        textColor: '#fff',
+        // Blanco o casi negro según el fondo (colores claros como «Plátano»): contraste ≥ 4,5:1.
+        textColor: readableForeground(color),
         classNames: ['sv-ev', `sv-ev-${row.kind}`],
         editable,
         extendedProps: {
@@ -759,6 +761,8 @@ function CalendarView({
             editable={editable}
             eventResizableFromStart={false}
             eventOverlap
+            // Eventos enfocables con Tab; Enter o Espacio los abren (fase 13, teclado).
+            eventInteractive
             views={{
               timeGridDay: { titleFormat: { day: 'numeric', month: 'long', year: 'numeric' } },
               timeGridWeek: { titleFormat: { month: 'long', year: 'numeric' } },

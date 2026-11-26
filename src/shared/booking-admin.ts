@@ -373,7 +373,7 @@ export function editQuote(input: {
 // ---------------------------------------------------------------------------
 
 export interface BookingEventRow {
-  action: 'created' | 'status_changed' | 'rescheduled' | 'edited';
+  action: 'created' | 'status_changed' | 'rescheduled' | 'edited' | 'anonymized';
   payload: Record<string, unknown>;
 }
 
@@ -401,5 +401,7 @@ export function describeEvent(e: BookingEventRow, formatWhen: (iso: string) => s
       const changes = Array.isArray(p.changes) ? p.changes.map((c) => CHANGE_LABELS[String(c)] ?? String(c)) : [];
       return `Editada${changes.length ? `: ${changes.join(', ')}` : ''}`;
     }
+    case 'anonymized':
+      return 'Datos personales del cliente eliminados a petición';
   }
 }
