@@ -204,6 +204,8 @@ export const bookingSettingsSchema = z.object({
   cancel_limit_hours: z.coerce.number().int().min(0).max(720).default(24),
   require_email: z.boolean().default(false),
   terms_text: z.string().trim().max(5000).default(''),
+  /** Dashboard (fase 12): el personal ve ingresos y ticket promedio. */
+  staff_can_see_revenue: z.boolean().default(true),
 });
 export type BookingSettings = z.output<typeof bookingSettingsSchema>;
 

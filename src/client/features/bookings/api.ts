@@ -275,6 +275,7 @@ function useAfterChange() {
     void queryClient.invalidateQueries({ queryKey: ['admin-booking'] });
     void queryClient.invalidateQueries({ queryKey: ['calendar-bookings'] });
     void queryClient.invalidateQueries({ queryKey: ['customers'] });
+    void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     const unique = new Map(touched.map((t) => [`${t.branch_id}:${t.service_id}`, t]));
     for (const t of unique.values()) {
       // Si falla, el sitio se actualiza igual al vencer los 30 s de caché.

@@ -105,7 +105,8 @@ const companyRoutes: RouteObject[] = [
     ErrorBoundary: RouteError,
     HydrateFallback,
     children: [
-      { index: true, lazy: async () => ({ Component: (await adminPages()).DashboardPage }) },
+      // Fase 12: dashboard (Recharts va en un chunk aparte, solo para las series).
+      { index: true, lazy: () => import('@client/features/dashboard/DashboardPage'), ErrorBoundary: RouteError },
       ...BOOKING_ROUTES,
       ...CONTENT_ROUTES,
       ...CATALOG_ROUTES,

@@ -93,7 +93,11 @@ function SettingsForm({ initial }: { initial: BookingSettings }) {
     />
   );
 
-  const toggle = (name: 'auto_confirm' | 'allow_customer_cancel' | 'require_email', label: string, hint: string) => (
+  const toggle = (
+    name: 'auto_confirm' | 'allow_customer_cancel' | 'require_email' | 'staff_can_see_revenue',
+    label: string,
+    hint: string,
+  ) => (
     <FormField
       control={form.control}
       name={name}
@@ -127,6 +131,11 @@ function SettingsForm({ initial }: { initial: BookingSettings }) {
                 'Si está apagado, las reservas quedan pendientes hasta que las confirmes.',
               )}
               {toggle('require_email', 'Correo obligatorio', 'Pide el correo además del teléfono al reservar.')}
+              {toggle(
+                'staff_can_see_revenue',
+                'El personal ve los ingresos',
+                'En el inicio del panel. Si lo apagas, el personal ve reservas y ocupación, pero no ingresos ni ticket promedio.',
+              )}
             </CardContent>
           </Card>
 
