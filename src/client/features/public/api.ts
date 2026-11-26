@@ -73,6 +73,22 @@ export function usePublicAbout() {
   });
 }
 
+export interface PublicPrivacy {
+  /** `null`: la empresa no escribió una propia → plantilla (`privacyTemplate`). */
+  policy: string | null;
+  updated_at: string | null;
+}
+
+export function usePublicPrivacy() {
+  const company = useCompany();
+  return useQuery({
+    queryKey: ['public', company.id, 'privacy'],
+    queryFn: () => publicFetch<PublicPrivacy>('/api/public/privacy'),
+    staleTime: STALE,
+    retry,
+  });
+}
+
 /**
  * Siembra la caché con los datos que el Worker incrustó en el HTML (`window.__PUBLIC__`,
  * claves de `publicDataKey`): la primera página pinta sin esperar a la API. Se usa una vez.

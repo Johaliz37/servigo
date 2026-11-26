@@ -31,6 +31,7 @@ describe('esquemas', () => {
     service_id: UUID,
     starts_at: '2026-12-01T14:00:00.000Z',
     customer: { name: ' Ana ', phone: '+573001234567', email: '', notes: '' },
+    privacy_consent: true,
     turnstile: 'tok',
   };
 
@@ -43,6 +44,9 @@ describe('esquemas', () => {
     ).toBe(false);
     expect(bookingRequestSchema.safeParse({ ...base, items: [{ product_id: UUID, quantity: 0 }] }).success).toBe(false);
     expect(bookingRequestSchema.safeParse({ ...base, turnstile: '' }).success).toBe(false);
+    // Autorización de datos obligatoria (fase 13, D31).
+    expect(bookingRequestSchema.safeParse({ ...base, privacy_consent: false }).success).toBe(false);
+    expect(bookingRequestSchema.safeParse({ ...base, privacy_consent: undefined }).success).toBe(false);
   });
 
   it('búsqueda: por código normaliza y exige contacto; por contacto acepta teléfono o correo', () => {

@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
 import { Button } from '@client/components/ui/button';
 import { messageOf } from '@client/lib/messages';
+import { reportError } from '@client/lib/report-error';
 
 /** Página "no encontrada" dentro de la SPA (la del tenant inexistente la sirve el Worker). */
 export function NotFoundPage() {
@@ -18,12 +20,16 @@ export function NotFoundPage() {
 /** `ErrorBoundary` de cada ruta: un fallo en una pantalla no tumba toda la app. */
 export function RouteError() {
   const error = useRouteError();
-  if (isRouteErrorResponse(error) && error.status === 404) return <NotFoundPage />;
-
+  const notFound = isRouteErrorResponse(error) && error.status === 404;
   // Un chunk que ya no existe tras un despliegue: recargar trae la versión nueva.
   const staleChunk =
     error instanceof TypeError && /dynamically imported module|Importing a module script/i.test(error.message);
-  console.error(error);
+  useEffect(() => {
+    if (notFound) return;
+    console.error(error);
+    if (!staleChunk) reportError('react', error);
+  }, [error, notFound, staleChunk]);
+  if (notFound) return <NotFoundPage />;
 
   return (
     <div role="alert" className="flex min-h-[60svh] flex-col items-center justify-center gap-4 p-6 text-center">

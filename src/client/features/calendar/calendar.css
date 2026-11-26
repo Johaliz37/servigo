@@ -133,7 +133,7 @@
   white-space: nowrap;
 }
 .sv-ev-time {
-  opacity: 0.9;
+  font-variant-numeric: tabular-nums;
 }
 .sv-calendar .fc-daygrid-event .sv-ev-body {
   flex-direction: row-reverse;

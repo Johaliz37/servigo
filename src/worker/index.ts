@@ -8,13 +8,27 @@ import { adminRoutes } from './routes/admin';
 import { bookingRoutes } from './routes/bookings';
 import { publicRoutes } from './routes/public';
 import { superadminRoutes } from './routes/superadmin';
+import { clientErrorRoutes, requestLog } from './observability';
 import { anonClient } from './supabase';
+import { applySecurityHeaders, contentSecurityPolicy, createNonce, NON_HTML_CSP, withNonce } from './security';
 import { loadSitemap, lookupPage } from './seo';
 import { brandStyle, publicShell } from './shell';
 import { tenantMiddleware } from './tenant';
 
 const app = new Hono<AppEnv>();
 
+// Primero: envuelven también las respuestas tempranas del tenant (404, redirecciones).
+app.use('*', requestLog);
+app.use('*', async (c, next) => {
+  const nonce = createNonce();
+  c.set('nonce', nonce);
+  await next();
+  const html = c.res.headers.get('content-type')?.includes('text/html') ?? false;
+  // Las respuestas de ASSETS tienen cabeceras inmutables: se copia la respuesta.
+  const res = new Response(c.res.body, c.res);
+  applySecurityHeaders(res.headers, html ? contentSecurityPolicy(c.env.SUPABASE_URL, nonce) : NON_HTML_CSP);
+  c.res = res;
+});
 app.use('*', tenantMiddleware);
 
 /** Tenant listo para la SPA (solo plataforma o empresa activa llegan hasta aquí). */
@@ -45,6 +59,7 @@ app.route('/api/public', publicRoutes);
 app.route('/api/bookings', bookingRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/superadmin', superadminRoutes);
+app.route('/api/client-errors', clientErrorRoutes);
 
 app.all('/api/*', (c) => apiError(c, 404, 'not_found', 'Ruta no encontrada'));
 
@@ -76,6 +91,7 @@ app.all('*', async (c) => {
     ? await lookupPage(c.env, company, path)
     : { meta: null, status: 200 as const, data: {}, shell: null };
   const head = buildHead(clientTenant(c), path, page.meta, page.data);
+  const nonce = c.get('nonce');
   const shell = company ? publicShell(c.env.SUPABASE_URL, company, page.shell) : null;
   const style = company ? brandStyle(company) : '';
   const rewritten = new HTMLRewriter()
@@ -94,9 +110,15 @@ app.all('*', async (c) => {
         el.setInnerContent(head.title);
       },
     })
+    // Scripts inline del propio HTML (en desarrollo, el preámbulo de Vite).
+    .on('script:not([src])', {
+      element(el) {
+        el.setAttribute('nonce', nonce);
+      },
+    })
     .on('head', {
       element(el) {
-        el.append(head.tags, { html: true });
+        el.append(withNonce(head.tags, nonce), { html: true });
       },
     })
     .transform(res);

@@ -33,6 +33,13 @@ jobs:
       - run: pnpm test:coverage
       - run: pnpm build
 
+      # Fase 13 §1 y §4: ninguna clave secreta llega al navegador (supabase-js solo trae el
+      # prefijo `sb_secret_` para avisar) y el JS inicial público cabe en 150 KiB gzip.
+      - name: Sin claves secretas en el bundle del navegador
+        run: "! grep -rlE 'sb_secret_[A-Za-z0-9_-]{16,}' dist/client"
+      - name: Presupuesto de JS inicial
+        run: node scripts/check-bundle.mjs
+
   # Base de datos (fase 04): migraciones desde cero + seed, pgTAP y linter de plpgsql.
   db:
     runs-on: ubuntu-latest
@@ -56,6 +63,9 @@ jobs:
       - run: pnpm exec supabase db reset
       - run: pnpm exec supabase test db
       - run: pnpm exec supabase db lint --fail-on error
+      # Security y Performance Advisor de Supabase (splinter) sobre el esquema: 0 avisos WARN o
+      # ERROR (fase 13). Los INFO de índices sin uso son normales en una BD recién creada.
+      - run: pnpm exec supabase db advisors --type all --level warn --fail-on warn
 
       # Los tipos generados deben estar al día con las migraciones.
       - name: Tipos de la BD al día
@@ -63,3 +73,76 @@ jobs:
           pnpm exec supabase gen types typescript --local > src/shared/database.types.ts
           pnpm exec prettier --write src/shared/database.types.ts
           git diff --exit-code src/shared/database.types.ts
+
+  # E2E (Chromium + Safari de iPhone), accesibilidad (axe) y Lighthouse (fase 13 §2–§4).
+  # Si falla, el workflow queda en rojo y `deploy` no se ejecuta.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Auth, Storage, Realtime (bandeja y dashboard en vivo) y Mailpit (invitaciones).
+      - name: Supabase local
+        run: pnpm exec supabase start -x imgproxy,studio,postgres-meta,edge-runtime,logflare,vector,supavisor
+
+      - run: pnpm exec supabase db reset
+
+      # Claves locales de este Supabase efímero y las de prueba de Turnstile (siempre validan).
+      - name: Variables locales
+        run: |
+          eval "$(pnpm exec supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY)=')"
+          {
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA"
+          } > .env.local
+          {
+            echo "SUPABASE_SECRET_KEY=$SECRET_KEY"
+            echo "SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA"
+          } > .dev.vars
+
+      # Chromium resuelve *.localhost solo; WebKit usa el sistema.
+      - name: Hosts de las empresas del seed
+        run: echo "127.0.0.1 demo.localhost spa.localhost" | sudo tee -a /etc/hosts
+
+      - run: pnpm exec playwright install --with-deps chromium webkit
+
+      - run: pnpm e2e
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      # Build de producción en workerd detrás de un proxy con gzip (como Cloudflare), perfil 4G.
+      - name: Lighthouse CI
+        run: |
+          pnpm build
+          pnpm preview > /tmp/preview.log 2>&1 &
+          node scripts/gzip-proxy.mjs > /tmp/proxy.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS -o /dev/null http://localhost:4274/api/health && break; sleep 1; done
+          pnpm dlx @lhci/cli@0.15.1 autorun --config=lighthouserc.json
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lighthouse
+          path: .lighthouseci/
+          # La carpeta empieza por punto: upload-artifact la omite si no se pide.
+          include-hidden-files: true
+          retention-days: 14

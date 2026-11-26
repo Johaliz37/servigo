@@ -1,4 +1,5 @@
 import imageCompression from 'browser-image-compression';
+import compressionLibUrl from 'browser-image-compression/dist/browser-image-compression.js?url';
 import { useQuery } from '@tanstack/react-query';
 import {
   MEDIA_MAX_BYTES,
@@ -62,6 +63,8 @@ async function toWebp(file: File, maxSide: number, maxBytes: number): Promise<Bl
       maxSizeMB: maxBytes / (1024 * 1024),
       alwaysKeepResolution: false,
       useWebWorker: true,
+      // La librería, servida desde /assets: por defecto el worker la baja de jsDelivr (CSP, fase 13).
+      libURL: compressionLibUrl,
     });
     if (out.size <= maxBytes) return out;
   }

@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { customerSchema } from '@shared/booking';
+import { consentLabel, PRIVACY_PATH } from '@shared/privacy';
 import { buildAnswersSchema, defaultAnswers, type BookingField } from '@shared/booking-fields';
 import { Button } from '@client/components/ui/button';
 import { Checkbox } from '@client/components/ui/checkbox';
@@ -20,6 +21,9 @@ function detailsSchema(fields: readonly BookingField[], requireEmail: boolean, t
     }),
     answers: buildAnswersSchema(fields),
     accept_terms: z.boolean().refine((v) => !terms || v, { error: 'Debes aceptar los términos para reservar' }),
+    privacy_consent: z
+      .boolean()
+      .refine((v) => v, { error: 'Debes autorizar el tratamiento de tus datos para reservar' }),
   });
 }
 
@@ -27,20 +31,23 @@ export type DetailsValues = z.output<ReturnType<typeof detailsSchema>>;
 
 /**
  * Paso 4 (fase 10 §1): nombre, teléfono (E.164), correo, notas, información adicional
- * (`DynamicFields` con `buildAnswersSchema`, D25) y términos si la empresa los tiene.
+ * (`DynamicFields` con `buildAnswersSchema`, D25), términos si la empresa los tiene y la
+ * autorización de datos, siempre obligatoria (Ley 1581, D31).
  */
 export function DetailsStep({
   fields,
   requireEmail,
   termsText,
+  companyName,
   draft,
   onSubmit,
 }: {
   fields: readonly BookingField[];
   requireEmail: boolean;
   termsText: string;
+  companyName: string;
   draft: BookingDraft;
-  onSubmit: (values: Pick<BookingDraft, 'customer' | 'answers' | 'accept_terms'>) => void;
+  onSubmit: (values: Pick<BookingDraft, 'customer' | 'answers' | 'accept_terms' | 'privacy_consent'>) => void;
 }) {
   const hasTerms = termsText.trim().length > 0;
   const schema = useMemo(() => detailsSchema(fields, requireEmail, hasTerms), [fields, requireEmail, hasTerms]);
@@ -50,6 +57,7 @@ export function DetailsStep({
       customer: draft.customer,
       answers: { ...defaultAnswers(fields), ...draft.answers },
       accept_terms: draft.accept_terms,
+      privacy_consent: draft.privacy_consent,
     },
   });
 
@@ -59,7 +67,7 @@ export function DetailsStep({
         noValidate
         onSubmit={form.handleSubmit(() =>
           // Se guarda lo escrito (no lo transformado): el Worker valida de nuevo al enviar.
-          onSubmit(form.getValues() as Pick<BookingDraft, 'customer' | 'answers' | 'accept_terms'>),
+          onSubmit(form.getValues() as Pick<BookingDraft, 'customer' | 'answers' | 'accept_terms' | 'privacy_consent'>),
         )}
         className="space-y-5"
       >
@@ -153,6 +161,30 @@ export function DetailsStep({
             )}
           />
         )}
+
+        <FormField
+          control={form.control}
+          name="privacy_consent"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <div className="flex items-start gap-3">
+                <FormControl>
+                  <Checkbox checked={field.value === true} onCheckedChange={(v) => field.onChange(v === true)} />
+                </FormControl>
+                <FormLabel className="leading-snug font-normal">{consentLabel(companyName)}</FormLabel>
+              </div>
+              <a
+                href={PRIVACY_PATH}
+                target="_blank"
+                rel="noopener"
+                className="ml-7 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Leer la política de privacidad
+              </a>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" size="lg" className="w-full sm:w-auto">
           Continuar

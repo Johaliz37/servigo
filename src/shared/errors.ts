@@ -30,7 +30,13 @@ const PG_MESSAGES: Record<string, string> = {
   '23503': 'No se puede completar: hay datos relacionados.',
   '23514': 'Algún dato no es válido.',
   '22P02': 'Algún dato tiene un formato no válido.',
+  '23502': 'Falta un dato obligatorio.',
+  '22001': 'Algún texto es demasiado largo.',
+  '40001': 'Hubo un cruce con otro cambio. Intenta de nuevo.',
+  '40P01': 'Hubo un cruce con otro cambio. Intenta de nuevo.',
+  '57014': 'La operación tardó demasiado. Intenta con un rango más corto.',
   '42501': 'No tienes permiso para hacer esto.',
+  PGRST116: 'No encontramos ese registro: puede que ya no exista.',
   PGRST301: 'Tu sesión terminó. Inicia sesión de nuevo.',
   PGRST303: 'Tu sesión terminó. Inicia sesión de nuevo.',
 };
@@ -66,6 +72,8 @@ export function errorMessage(error: unknown): string {
     if (known) return CONSTRAINT_MESSAGES[known] as string;
   }
   if (e.code && PG_MESSAGES[e.code]) return PG_MESSAGES[e.code] as string;
+  if (e.status !== undefined && e.status >= 500)
+    return 'El servidor no está disponible. Intenta de nuevo en un momento.';
   if (e.status === 429) return AUTH_MESSAGES.over_request_rate_limit as string;
   if (e.status === 401) return 'Tu sesión terminó. Inicia sesión de nuevo.';
   if (e.status === 403) return PG_MESSAGES['42501'] as string;

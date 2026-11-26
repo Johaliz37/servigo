@@ -1,5 +1,6 @@
 import { CheckIcon, ChevronDownIcon, MapPinIcon, MenuIcon } from 'lucide-react';
 import { Link, NavLink, Outlet, useParams } from 'react-router';
+import { PRIVACY_PATH } from '@shared/privacy';
 import { aboutPath, branchPath, type PublicSite } from '@shared/public-site';
 import { buttonVariants } from '@client/components/ui/button';
 import { useCompany } from '@client/app/tenant-context';
@@ -123,12 +124,21 @@ function SiteFooter({ site }: { site: PublicSite | undefined }) {
         )}
       </div>
       <div className="border-t">
-        <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:justify-between">
-          <span>
-            © {new Date().getFullYear()} {company.name}
+        {/* Enlaces con al menos 24 px de alto (WCAG 2.5.8, Lighthouse target-size). */}
+        <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span className="flex flex-wrap items-center gap-x-1">
+            <span>
+              © {new Date().getFullYear()} {company.name} ·
+            </span>
+            <Link to={PRIVACY_PATH} className="inline-flex min-h-6 items-center underline-offset-4 hover:underline">
+              Política de privacidad
+            </Link>
           </span>
           {footer.show_powered_by !== false && (
-            <a href="https://servigo.roquintech.com" className="underline-offset-4 hover:underline">
+            <a
+              href="https://servigo.roquintech.com"
+              className="inline-flex min-h-6 items-center underline-offset-4 hover:underline"
+            >
               Hecho con Servigo
             </a>
           )}

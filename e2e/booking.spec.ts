@@ -37,80 +37,86 @@ const booking = (starts_at: string, extra: Record<string, unknown> = {}) => ({
   service_id: BARBA,
   starts_at,
   customer: { name: 'Prueba API', phone: `+57${randomPhone()}`, email: '', notes: '' },
+  privacy_consent: true,
   turnstile: 'XXXX.DUMMY.TOKEN.XXXX',
   ...extra,
 });
 
-test('reserva completa con un complemento y campos adicionales → código → búsqueda por teléfono', async ({ page }) => {
-  test.setTimeout(90_000);
-  const phone = randomPhone();
+test(
+  'reserva completa con un complemento y campos adicionales → código → búsqueda por teléfono',
+  { tag: '@mobile' },
+  async ({ page }) => {
+    test.setTimeout(90_000);
+    const phone = randomPhone();
 
-  await page.goto(`${DEMO}/s/norte`);
-  await page.getByRole('link', { name: 'Reservar Corte de cabello' }).click();
-  await expect(page.getByRole('heading', { name: 'Elige fecha y hora' })).toBeVisible();
+    await page.goto(`${DEMO}/s/norte`);
+    await page.getByRole('link', { name: 'Reservar Corte de cabello' }).click();
+    await expect(page.getByRole('heading', { name: 'Elige fecha y hora' })).toBeVisible();
 
-  // Mes siguiente: lejos de la antelación mínima y de otras pruebas.
-  await page
-    .getByRole('button', { name: /siguiente|next/i })
-    .first()
-    .click();
-  // Día y hora al azar: repetir la suite no choca con las reservas de la vez anterior.
-  const days = page.locator('button[data-day]:not([disabled])');
-  await expect(days.first()).toBeVisible();
-  await days.nth(Math.floor(Math.random() * Math.min(10, await days.count()))).click();
-  const slots = page.locator('button[aria-pressed]');
-  await expect(slots.first()).toBeVisible();
-  await slots.nth(Math.floor(Math.random() * (await slots.count()))).click();
+    // Mes siguiente: lejos de la antelación mínima y de otras pruebas.
+    await page
+      .getByRole('button', { name: /siguiente|next/i })
+      .first()
+      .click();
+    // Día y hora al azar: repetir la suite no choca con las reservas de la vez anterior.
+    const days = page.locator('button[data-day]:not([disabled])');
+    await expect(days.first()).toBeVisible();
+    await days.nth(Math.floor(Math.random() * Math.min(10, await days.count()))).click();
+    const slots = page.locator('button[aria-pressed]');
+    await expect(slots.first()).toBeVisible();
+    await slots.nth(Math.floor(Math.random() * (await slots.count()))).click();
 
-  // Paso 3: un complemento (Shampoo, sin control de stock).
-  await expect(page.getByRole('heading', { name: 'Añade productos' })).toBeVisible();
-  await page.getByRole('button', { name: 'Añadir una unidad de Shampoo anticaspa' }).click();
-  await expect(page.getByTestId('booking-total').first()).toContainText('60.000');
-  await page.getByRole('button', { name: 'Continuar' }).click();
+    // Paso 3: un complemento (Shampoo, sin control de stock).
+    await expect(page.getByRole('heading', { name: 'Añade productos' })).toBeVisible();
+    await page.getByRole('button', { name: 'Añadir una unidad de Shampoo anticaspa' }).click();
+    await expect(page.getByTestId('booking-total').first()).toContainText('60.000');
+    await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Paso 4: datos e información adicional.
-  await expect(page.getByRole('heading', { name: 'Tus datos' })).toBeVisible();
-  await page.getByLabel('Nombre completo').fill('Laura Gómez');
-  await page.getByRole('textbox', { name: 'Teléfono' }).fill(phone);
-  await page.getByRole('combobox', { name: '¿Cómo nos conociste?' }).click();
-  await page.getByRole('option', { name: 'Un amigo' }).click();
-  await page.getByRole('button', { name: 'Continuar' }).click();
+    // Paso 4: datos e información adicional.
+    await expect(page.getByRole('heading', { name: 'Tus datos' })).toBeVisible();
+    await page.getByLabel('Nombre completo').fill('Laura Gómez');
+    await page.getByRole('textbox', { name: 'Teléfono' }).fill(phone);
+    await page.getByRole('combobox', { name: '¿Cómo nos conociste?' }).click();
+    await page.getByRole('option', { name: 'Un amigo' }).click();
+    await page.getByRole('checkbox', { name: /Autorizo a Barbería Demo/ }).check();
+    await page.getByRole('button', { name: 'Continuar' }).click();
 
-  // Recargar no pierde lo escrito (sessionStorage + URL).
-  await expect(page.getByRole('heading', { name: 'Revisa y confirma' })).toBeVisible();
-  await page.reload();
-  await expect(page.getByText('Laura Gómez')).toBeVisible();
+    // Recargar no pierde lo escrito (sessionStorage + URL).
+    await expect(page.getByRole('heading', { name: 'Revisa y confirma' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByText('Laura Gómez')).toBeVisible();
 
-  // Paso 5: Turnstile y confirmar.
-  const confirm = page.getByRole('button', { name: 'Confirmar reserva' });
-  await expect(confirm).toBeEnabled({ timeout: 20_000 });
-  await confirm.click();
-  await expect(page).toHaveURL(/\/reserva\/[0-9A-Z]{8}\?t=/);
-  const code = (await page.getByTestId('booking-code').innerText()).trim();
-  expect(code).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
-  await expect(page.getByText('Pendiente', { exact: true })).toBeVisible();
-  await expect(page.getByTestId('booking-detail-total')).toContainText('60.000');
-  await expect(page.getByText('1 × Shampoo anticaspa')).toBeVisible();
-  await expect(page.getByText('Un amigo')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Google Calendar/ })).toHaveAttribute('href', /calendar\.google\.com/);
+    // Paso 5: Turnstile y confirmar.
+    const confirm = page.getByRole('button', { name: 'Confirmar reserva' });
+    await expect(confirm).toBeEnabled({ timeout: 20_000 });
+    await confirm.click();
+    await expect(page).toHaveURL(/\/reserva\/[0-9A-Z]{8}\?t=/);
+    const code = (await page.getByTestId('booking-code').innerText()).trim();
+    expect(code).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+    await expect(page.getByText('Pendiente', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('booking-detail-total')).toContainText('60.000');
+    await expect(page.getByText('1 × Shampoo anticaspa')).toBeVisible();
+    await expect(page.getByText('Un amigo')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Google Calendar/ })).toHaveAttribute('href', /calendar\.google\.com/);
 
-  // Búsqueda por teléfono en «Mis reservas».
-  await page.goto(`${DEMO}/mis-reservas`);
-  await page.getByRole('tab', { name: 'Por teléfono o correo' }).click();
-  await page.getByRole('textbox', { name: 'Teléfono' }).fill(phone);
-  const search = page.getByRole('button', { name: 'Buscar' });
-  await expect(search).toBeEnabled({ timeout: 20_000 });
-  await search.click();
-  const results = page.getByRole('region', { name: '1 reserva' });
-  await expect(results).toContainText(code);
-  await expect(results).toContainText('La*** Gó***');
+    // Búsqueda por teléfono en «Mis reservas».
+    await page.goto(`${DEMO}/mis-reservas`);
+    await page.getByRole('tab', { name: 'Por teléfono o correo' }).click();
+    await page.getByRole('textbox', { name: 'Teléfono' }).fill(phone);
+    const search = page.getByRole('button', { name: 'Buscar' });
+    await expect(search).toBeEnabled({ timeout: 20_000 });
+    await search.click();
+    const results = page.getByRole('region', { name: '1 reserva' });
+    await expect(results).toContainText(code);
+    await expect(results).toContainText('La*** Gó***');
 
-  // Sin el enlace, el detalle pide el contacto.
-  await page.context().clearCookies();
-  await page.evaluate(() => localStorage.clear());
-  await page.goto(`${DEMO}/reserva/${code.replace('-', '')}`);
-  await expect(page.getByText('escribe el teléfono o el correo con que reservaste')).toBeVisible();
-});
+    // Sin el enlace, el detalle pide el contacto.
+    await page.context().clearCookies();
+    await page.evaluate(() => localStorage.clear());
+    await page.goto(`${DEMO}/reserva/${code.replace('-', '')}`);
+    await expect(page.getByText('escribe el teléfono o el correo con que reservaste')).toBeVisible();
+  },
+);
 
 test('API: el mismo cupo pedido dos veces a la vez → una entra y la otra recibe 409', async ({ request }) => {
   const ip = apiIp();
@@ -191,6 +197,7 @@ test('si el horario se ocupó al confirmar, vuelve a la fecha con aviso y conser
   await page.goto(`${DEMO}/s/norte/reservar/${BARBA}?step=datos&date=${date}&slot=${encodeURIComponent(start)}`);
   await page.getByLabel('Nombre completo').fill('Carlos Ruiz');
   await page.getByRole('textbox', { name: 'Teléfono' }).fill(randomPhone());
+  await page.getByRole('checkbox', { name: /Autorizo a Barbería Demo/ }).check();
   await page.getByRole('button', { name: 'Continuar' }).click();
   const confirm = page.getByRole('button', { name: 'Confirmar reserva' });
   await expect(confirm).toBeEnabled({ timeout: 20_000 });

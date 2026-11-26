@@ -23,7 +23,8 @@ create function pg_temp.payload(p_extra jsonb default '{}') returns jsonb langua
     'starts_at', pg_temp.at(), 'capacity', 1,
     'customer', jsonb_build_object('name', 'Juan Pérez', 'phone', '+573001234567', 'email', 'juan@test.local'),
     'items', jsonb_build_array(jsonb_build_object('product_id', pg_temp.fx('product'), 'quantity', 2)),
-    'answers', jsonb_build_array(jsonb_build_object('field_id', pg_temp.fx('field'), 'value', 'Sin gel'))
+    'answers', jsonb_build_array(jsonb_build_object('field_id', pg_temp.fx('field'), 'value', 'Sin gel')),
+    'privacy_consent', true
   ) || p_extra $$;
 
 create temp table res (k text primary key, v jsonb) on commit drop;

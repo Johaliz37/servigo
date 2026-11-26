@@ -11,6 +11,7 @@ import {
   type LucideIcon,
   PackageIcon,
   PanelBottomIcon,
+  ShieldCheckIcon,
   ScissorsIcon,
   Share2Icon,
   SlidersHorizontalIcon,
@@ -65,6 +66,13 @@ export const ADMIN_NAV: NavGroup[] = [
       },
       { path: 'contenido/redes', label: 'Redes sociales', icon: Share2Icon, action: 'company.edit', phase: 5 },
       { path: 'contenido/footer', label: 'Pie de página', icon: PanelBottomIcon, action: 'company.edit', phase: 5 },
+      {
+        path: 'contenido/privacidad',
+        label: 'Privacidad',
+        icon: ShieldCheckIcon,
+        action: 'company.edit',
+        phase: 13,
+      },
     ],
   },
   {

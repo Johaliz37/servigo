@@ -14,7 +14,7 @@ Los comandos son para Git Bash o PowerShell, desde la raíz del repo, salvo que 
 | Base de datos y Auth    | Supabase, proyecto `servigo` (ref `pkrwxmsqibjmmpzmswzm`, plan Free)                  |
 | Correo saliente         | Resend, dominio `mail.roquintech.com` → SMTP de Supabase Auth                         |
 | Antibots                | Cloudflare Turnstile, widget `Servigo` (hostname `roquintech.com`)                    |
-| CI/CD                   | GitHub Actions: `ci`, `deploy`, `keepalive`, `backup`; entorno `production`           |
+| CI/CD                   | GitHub Actions: `ci` (jobs `ci`, `db`, `e2e`), `deploy`, `keepalive`, `uptime`, `backup`; entorno `production` |
 | Clave privada de backup | Solo en el gestor de contraseñas («Servigo – clave de backups (age)»). Nunca en GitHub |
 
 ### Secretos y variables
@@ -73,7 +73,11 @@ Después, revierte también el commit en `main` con un PR. Si no, el siguiente d
 
 ## 4. Logs y diagnóstico
 
-- Cloudflare → `servigo-production` → **Observability**: logs y errores, con 3 días de retención en Free.
+- Cloudflare → `servigo-production` → **Observability**: logs y errores, con 3 días de retención en Free. Cada petición deja una línea JSON sin datos personales (D31). Filtros útiles:
+  - `msg = request` y `status >= 500`: errores del Worker, por `route` y `tenant`.
+  - `msg = request`, ordenado por `duration`: rutas lentas.
+  - `msg = client_error`: errores del navegador (`kind`: `error`, `unhandledrejection`, `react` o `csp`). Una violación de CSP después de añadir un recurso externo (fuente, script, iframe) obliga a permitirlo en `src/worker/security.ts`.
+  - `msg = db_error` o `booking_rpc_failed`: fallos de Postgres.
 - En vivo:
 
   ```sh
@@ -82,7 +86,8 @@ Después, revierte también el commit en `main` con un PR. Si no, el siguiente d
 
 - Supabase → Logs: Postgres, Auth (correos enviados y fallidos) y API.
 - Resend → Emails: entregas, rebotes y spam.
-- Salud del Worker y de la BD: `https://servigo.roquintech.com/api/health?db=1`.
+- Salud del Worker y de la BD: `https://servigo.roquintech.com/api/health?db=1`. El workflow `uptime` la consulta cada hora y GitHub avisa por correo si falla.
+- Métricas del Worker: Cloudflare → `servigo-production` → **Metrics**. Revisa las peticiones por día (límite 100 000) y el **CPU time p99**, que debe quedar por debajo de 10 ms (límite del plan Free).
 
 ## 5. Rotar secretos
 
@@ -245,7 +250,7 @@ La zona la comparten todos los productos de Roquintech y el correo corporativo. 
 En GitHub, la rama `main` está protegida:
 
 - PR obligatorio;
-- checks `ci` y `db`;
+- checks `ci` y `db` (y `e2e` desde la fase 13: añádelo en Settings → Branches → `main`);
 - historial lineal;
 - sin force push ni borrado.
 
@@ -259,3 +264,66 @@ Revisión mensual:
 - GitHub → Settings → Billing.
 
 Si algo aparece con importe, se desactiva antes de seguir.
+
+## 12. Capacidad y límites gratuitos
+
+Estimaciones de la fase 13 con el código de v1. Revísalas en la revisión mensual (§11).
+
+| Límite (plan Free) | Qué lo consume | Hasta dónde llega | Qué hacer al acercarse |
+| --- | --- | --- | --- |
+| Worker: 100 000 peticiones/día | HTML de cada página, `/api/public/*` al navegar, cupos del asistente y reservas. El panel habla directo con Supabase y `/assets` no pasa por el Worker | Una visita gasta unas 3 peticiones y una reserva completa unas 10: unas 25 000–30 000 visitas al día | Subir el TTL de la caché pública. Si no alcanza, Workers Paid (5 USD/mes) rompe el costo 0: es una decisión de negocio |
+| Worker: 10 ms de CPU | Cupos de 31 días (~2 ms, D26) y HTML con HTMLRewriter | Holgado. Vigila el p99 en **Metrics** | Partir rangos de cupos más largos |
+| BD: 500 MB | Reservas: ~1,7 KB cada una con índices, más ~0,3 KB por evento del historial (medido en local). Catálogo y contenido pesan poco | Unas 150 000–180 000 reservas en total | Supabase → **Database** → tamaño por tabla. Archivar reservas viejas (exportar CSV y borrar las de más de N años) o Supabase Pro (25 USD/mes) |
+| Storage: 1 GB | Fotos WebP de ~150–400 KB más miniatura | Unas 3 000 imágenes: ~100 empresas con 30 fotos | Bajar la calidad o el tamaño (D22). La salida gratuita es Cloudflare R2 (10 GB sin costo de egress, D14) |
+| Egress: 5 GB/mes | Imágenes servidas por Supabase. El navegador las guarda 1 año | ~15 000–30 000 visitantes nuevos al mes | Supabase → **Usage** → *Egress*. Mover las imágenes a R2 (D14) |
+| Realtime: 200 conexiones a la vez | Cada pestaña abierta del panel (bandeja y dashboard) | 200 pestañas del panel abiertas al mismo tiempo | Cerrar el canal en pestañas en segundo plano |
+| Correo (Resend): 100/día, 3 000/mes | Invitaciones, enlaces mágicos y recuperar contraseña. Los clientes finales no reciben correo | Holgado | Resend → **Usage** |
+| Workers Logs: 3 días | Una línea por petición y errores | — | Para investigar algo antiguo, revisar antes de 3 días |
+| GitHub Actions | Repo público: minutos ilimitados | — | — |
+
+## 13. Alertas gratuitas
+
+Actívalas una vez y revísalas cada trimestre:
+
+- **GitHub** → Settings → Notifications → **Actions**: avisar de los *failed workflows*. Así llegan los fallos de `uptime`, `keepalive`, `backup` y `deploy`.
+- **Supabase**: la organización envía correos de uso cuando el proyecto se acerca a los límites del plan Free. Confirma que el correo del owner de la organización es uno que lees: Organization → **Team**.
+- **Cloudflare** → **Notifications** → *Add*: activa las alertas disponibles en Free para Workers y para la zona, como errores de Workers o certificados por vencer. Destino: el correo de la cuenta.
+- **Resend**: avisa por correo al acercarse a la cuota mensual.
+
+## 14. Datos personales (Ley 1581 de 2012)
+
+- **Política**: cada empresa la edita en **Sitio público → Privacidad**. Sin texto propio se publica la plantilla con sus datos de contacto. Es orientativa: que cada empresa la revise con su asesor.
+- **Autorización**: el sitio no deja reservar sin marcar la casilla. La fecha queda en `bookings.privacy_consent_at`.
+- **Solicitudes del titular** (consultar, corregir o eliminar): las atiende la empresa (responsable). Plazos: 10 días hábiles para consultas y 15 para reclamos. Roquintech actúa como encargado.
+  - Corregir: **Clientes** → el cliente → editar nombre, correo o notas. El teléfono se cambia editando una reserva.
+  - Eliminar: **Clientes** → el cliente → **Eliminar datos personales**. Solo lo ve el owner. Borra nombre, teléfono, correo, notas, respuestas y motivos de todas sus reservas, y conserva las reservas sin datos personales (D31).
+- **Backups**: los datos eliminados siguen en los backups cifrados hasta que estos vencen (90 días). Si te piden supresión total antes, informa la fecha en que vence el último backup que los contiene.
+
+## 15. Incidentes comunes
+
+| Síntoma | Causa probable | Qué hacer |
+| --- | --- | --- |
+| «Sitio no disponible» en todas las empresas | Supabase pausado o caído | `/api/health?db=1`. Supabase → proyecto → *Restore* si está pausado. Revisa que `keepalive` corra (§7) |
+| 404 «empresa no existe» con una empresa real | Empresa `suspended`, slug mal escrito o caché del tenant | `/console` → estado de la empresa. La caché se renueva en 60 s |
+| Las reservas fallan con 403 | Turnstile: secreto rotado o hostname del widget | Cloudflare → Turnstile → Servigo: hostname `roquintech.com`. `TURNSTILE_SECRET_KEY` en GitHub (§5) |
+| Muchos 429 en reservas | Varios clientes detrás de la misma IP (wifi del local) | Los límites son por IP y minuto (D28). Si es recurrente, sube `limit` en `wrangler.jsonc` |
+| No llegan invitaciones ni correos de recuperar contraseña | SMTP de Resend, cuota o plantilla | Supabase → Logs → Auth; Resend → Emails (§4) |
+| «Hay una versión nueva» al navegar | Chunk viejo tras un despliegue | Normal: recargar. Si es masivo, revisa que `/assets` siga respondiendo |
+| Violaciones de CSP en los logs | Recurso externo nuevo, o una extensión del navegador | Si es nuestro, permitirlo en `src/worker/security.ts`. Si viene de una extensión, ignorarlo |
+| Falló `deploy` en la migración | SQL incompatible con producción | §3: revertir con una migración nueva. Nunca editar una ya aplicada |
+| `keepalive` o `uptime` desactivados | GitHub apaga los cron tras 60 días sin commits | Actions → el workflow → *Enable workflow* |
+
+## 16. Checklist de lanzamiento (v1.0.0)
+
+Lo que no se puede hacer desde el código (fase 13 §7). Anota la fecha al completar cada punto.
+
+- [ ] Supabase → **Advisors** (Security y Performance) sin avisos en producción. El mismo chequeo corre en CI sobre el esquema. Contra producción: `pnpm exec supabase db advisors --remote=<ref> --level warn`.
+- [ ] Workers **Metrics**: CPU p99 < 10 ms y peticiones/día lejos de 100 000.
+- [ ] Alertas de §13 activadas.
+- [ ] `backup` semanal con al menos una ejecución programada (domingo) en verde, y simulacro de restauración local con ese backup (§8).
+- [ ] `keepalive` y `uptime` con ejecuciones programadas en verde.
+- [ ] Seed de demo **no** aplicado en producción: `select count(*) from public.companies where slug in ('demo', 'spa');` → 0. `deploy` nunca carga el seed. La empresa `demo` de vitrina se crea a mano desde `/console`, si se quiere.
+- [ ] Check `e2e` añadido a los obligatorios de `main` (§10).
+- [ ] Primera empresa real dada de alta y acompañada en la configuración (`docs/manual-empresa.md`).
+- [ ] Facturación en 0 USD en Cloudflare, Supabase, GitHub y Resend (§11).
+- [ ] Release `v1.0.0` etiquetada después del despliegue: `git tag v1.0.0 && git push origin v1.0.0`, y la release en GitHub con el CHANGELOG.

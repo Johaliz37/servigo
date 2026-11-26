@@ -1,4 +1,6 @@
 # Cabeceras de Workers Static Assets (solo aplican a lo que no pasa por el Worker: /assets/*).
-# Los nombres llevan hash de contenido, así que se pueden cachear para siempre.
+# Los nombres llevan hash de contenido, así que se pueden cachear para siempre. El resto de
+# cabeceras de seguridad las pone el Worker (src/worker/security.ts, fase 13).
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff

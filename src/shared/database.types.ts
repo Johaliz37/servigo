@@ -422,6 +422,7 @@ export type Database = {
           ends_at: string;
           id: string;
           internal_notes: string | null;
+          privacy_consent_at: string | null;
           products_total: number;
           service_discount: number;
           service_id: string;
@@ -454,6 +455,7 @@ export type Database = {
           ends_at: string;
           id?: string;
           internal_notes?: string | null;
+          privacy_consent_at?: string | null;
           products_total?: number;
           service_discount?: number;
           service_id: string;
@@ -485,6 +487,7 @@ export type Database = {
           ends_at?: string;
           id?: string;
           internal_notes?: string | null;
+          privacy_consent_at?: string | null;
           products_total?: number;
           service_discount?: number;
           service_id?: string;
@@ -866,6 +869,8 @@ export type Database = {
           logo_path: string | null;
           name: string;
           primary_color: string | null;
+          privacy_policy: string | null;
+          privacy_updated_at: string | null;
           secondary_color: string | null;
           seo: NonNullable<Json>;
           slug: string;
@@ -891,6 +896,8 @@ export type Database = {
           logo_path?: string | null;
           name: string;
           primary_color?: string | null;
+          privacy_policy?: string | null;
+          privacy_updated_at?: string | null;
           secondary_color?: string | null;
           seo?: NonNullable<Json>;
           slug: string;
@@ -915,6 +922,8 @@ export type Database = {
           logo_path?: string | null;
           name?: string;
           primary_color?: string | null;
+          privacy_policy?: string | null;
+          privacy_updated_at?: string | null;
           secondary_color?: string | null;
           seo?: NonNullable<Json>;
           slug?: string;
@@ -1018,6 +1027,7 @@ export type Database = {
       };
       customers: {
         Row: {
+          anonymized_at: string | null;
           company_id: string;
           created_at: string;
           email: string | null;
@@ -1029,6 +1039,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          anonymized_at?: string | null;
           company_id: string;
           created_at?: string;
           email?: string | null;
@@ -1039,6 +1050,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          anonymized_at?: string | null;
           company_id?: string;
           created_at?: string;
           email?: string | null;
@@ -1361,6 +1373,7 @@ export type Database = {
         Args: { p_branch: string; p_exclude?: string; p_from: string; p_service: string; p_to: string };
         Returns: Json;
       };
+      anonymize_customer: { Args: { p_customer: string }; Returns: number };
       apply_availability_plan: { Args: { p_plan: Json }; Returns: undefined };
       booking_capacity_cap: { Args: { p_branch: string; p_company: string; p_service: string }; Returns: number };
       booking_history: {
@@ -1436,6 +1449,7 @@ export type Database = {
           ends_at: string;
           id: string;
           internal_notes: string | null;
+          privacy_consent_at: string | null;
           products_total: number;
           service_discount: number;
           service_id: string;
@@ -1543,6 +1557,7 @@ export type Database = {
       get_public_about: { Args: { p_branch_slug?: string; p_slug: string }; Returns: Json };
       get_public_branch: { Args: { p_branch_slug: string; p_slug: string }; Returns: Json };
       get_public_item: { Args: { p_branch_slug: string; p_item_id: string; p_slug: string }; Returns: Json };
+      get_public_privacy: { Args: { p_slug: string }; Returns: Json };
       get_public_site: { Args: { p_slug: string }; Returns: Json };
       get_public_sitemap: { Args: { p_slug: string }; Returns: Json };
       get_slot_inputs: {
@@ -1590,6 +1605,7 @@ export type Database = {
           ends_at: string;
           id: string;
           internal_notes: string | null;
+          privacy_consent_at: string | null;
           products_total: number;
           service_discount: number;
           service_id: string;
@@ -1685,6 +1701,8 @@ export type Database = {
           logo_path: string | null;
           name: string;
           primary_color: string | null;
+          privacy_policy: string | null;
+          privacy_updated_at: string | null;
           secondary_color: string | null;
           seo: NonNullable<Json>;
           slug: string;

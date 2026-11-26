@@ -12,6 +12,7 @@ import {
   type PublicSite,
   type PublicSitemap,
 } from '@shared/public-site';
+import { PRIVACY_PATH } from '@shared/privacy';
 import { mediaUrl, type TenantCompany } from '@shared/tenant';
 import type { PageMeta } from './html';
 import { publicReads } from './public-cache';
@@ -45,6 +46,7 @@ export async function lookupPage(env: Env, company: TenantCompany, path: string)
       if (!site.data) return empty;
       return {
         ...empty,
+        meta: path === PRIVACY_PATH ? { title: `Política de privacidad · ${company.name}` } : null,
         data: { [publicDataKey.site()]: site.data },
         shell:
           path === '/'

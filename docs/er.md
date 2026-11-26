@@ -48,6 +48,7 @@ erDiagram
         jsonb footer
         jsonb booking_settings
         jsonb seo
+        text privacy_policy "null = plantilla (fase 13)"
         company_status status
     }
     reserved_slugs {
@@ -91,11 +92,13 @@ erDiagram
         timestamptz starts_at
         timestamptz block_starts_at "con buffers"
         numeric total
+        timestamptz privacy_consent_at "reserva web (fase 13)"
     }
     customers {
         uuid id PK
-        text phone "E.164, único por empresa"
+        text phone "E.164 (o anon-… si se anonimizó), único por empresa"
         citext email
+        timestamptz anonymized_at
     }
 ```
 
@@ -106,3 +109,5 @@ erDiagram
 - **Tipos de ítem**: `enforce_item_kind` exige servicio/producto donde corresponde (`service_products`, `booking_fields`, `bookings`, `booking_items`).
 - **Solo el superadmin** cambia `slug` y `status` de una empresa (`companies_guard_platform_fields`).
 - **Storage**: bucket público `media`; solo owner/admin escriben bajo `{company_id}/…`.
+- **Reservas**: el panel solo las escribe por RPC (`create_booking_admin`, `change_booking_status`, `reschedule_booking`, `update_booking_admin`; D29) y el sitio por el Worker (`create_booking`, D28). `anonymize_customer` borra los datos personales de un cliente y conserva sus reservas (D31).
+- **Auditoría** (`supabase/tests/anon.test.sql` y `fase13_security_audit.test.sql`): toda tabla con RLS y al menos una política, `anon` sin privilegios de tabla y con una lista cerrada de RPC, y toda función `security definer` con `search_path = ''`.

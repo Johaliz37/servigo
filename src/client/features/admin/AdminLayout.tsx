@@ -72,7 +72,7 @@ export function PendingBadge() {
   if (!pending.data) return null;
   return (
     <span
-      className="ml-auto rounded-full bg-amber-500 px-1.5 text-xs font-medium text-white tabular-nums group-data-[collapsible=icon]:hidden"
+      className="ml-auto rounded-full bg-amber-700 px-1.5 text-xs font-medium text-white tabular-nums group-data-[collapsible=icon]:hidden"
       aria-label={`${pending.data} pendientes`}
     >
       {pending.data}
@@ -202,7 +202,7 @@ function AdminShell() {
     <BranchProvider>
       <SidebarProvider>
         <AdminSidebar />
-        <SidebarInset>
+        <SidebarInset className="min-w-0">
           <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur print:hidden">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />

@@ -16,6 +16,7 @@ import {
 import { formatCode } from '@shared/booking';
 import { formatAnswer, parseOptions, type AnswerValue } from '@shared/booking-fields';
 import { formatMoney } from '@shared/format';
+import { isAnonymizedPhone } from '@shared/privacy';
 import { Button } from '@client/components/ui/button';
 import {
   Dialog,
@@ -107,6 +108,7 @@ function Detail({
     else toast.success(`Reserva ${code}: ${TRANSITION_LABELS[to].toLowerCase()}`);
   }
 
+  const anonymized = isAnonymizedPhone(booking.customer_phone);
   const context = {
     code: booking.code,
     customer_name: booking.customer_name,
@@ -159,32 +161,34 @@ function Detail({
               <PencilIcon aria-hidden /> Editar
             </Button>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline">
-                <MessageCircleIcon aria-hidden /> WhatsApp
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Mensaje al cliente</DropdownMenuLabel>
-              {MESSAGE_TEMPLATES.map((t) => (
-                <DropdownMenuItem key={t.id} asChild>
-                  <a
-                    href={whatsappLink(booking.customer_phone, messageText(t.id, context))}
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    {t.label}
+          {!anonymized && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <MessageCircleIcon aria-hidden /> WhatsApp
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Mensaje al cliente</DropdownMenuLabel>
+                {MESSAGE_TEMPLATES.map((t) => (
+                  <DropdownMenuItem key={t.id} asChild>
+                    <a
+                      href={whatsappLink(booking.customer_phone, messageText(t.id, context))}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {t.label}
+                    </a>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem asChild>
+                  <a href={whatsappLink(booking.customer_phone)} target="_blank" rel="noopener">
+                    Sin plantilla
                   </a>
                 </DropdownMenuItem>
-              ))}
-              <DropdownMenuItem asChild>
-                <a href={whatsappLink(booking.customer_phone)} target="_blank" rel="noopener">
-                  Sin plantilla
-                </a>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         {booking.status === 'cancelled' && booking.cancel_reason && (
           <p className="text-sm text-muted-foreground">Motivo: {booking.cancel_reason}</p>
@@ -194,18 +198,23 @@ function Detail({
       <Block title="Cliente">
         <div className="space-y-1 text-sm">
           <p className="font-medium">{booking.customer_name}</p>
+          {anonymized && <p className="text-muted-foreground">Datos personales eliminados a petición del cliente.</p>}
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <a href={`tel:${booking.customer_phone}`} className="inline-flex items-center gap-1 hover:underline">
-              <PhoneIcon className="size-3.5" aria-hidden /> {booking.customer_phone}
-            </a>
-            <a
-              href={whatsappLink(booking.customer_phone)}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-1 hover:underline"
-            >
-              <MessageCircleIcon className="size-3.5" aria-hidden /> WhatsApp
-            </a>
+            {!anonymized && (
+              <>
+                <a href={`tel:${booking.customer_phone}`} className="inline-flex items-center gap-1 hover:underline">
+                  <PhoneIcon className="size-3.5" aria-hidden /> {booking.customer_phone}
+                </a>
+                <a
+                  href={whatsappLink(booking.customer_phone)}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1 hover:underline"
+                >
+                  <MessageCircleIcon className="size-3.5" aria-hidden /> WhatsApp
+                </a>
+              </>
+            )}
             {booking.customer_email && (
               <a href={`mailto:${booking.customer_email}`} className="inline-flex items-center gap-1 hover:underline">
                 <MailIcon className="size-3.5" aria-hidden /> {booking.customer_email}

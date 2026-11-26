@@ -134,7 +134,10 @@ export function Heatmap({ cells }: { cells: readonly HeatCell[] }) {
   const hovered = hover ? rows[hover.d]![hours.indexOf(hover.h)]! : 0;
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
+      {/* Desplazable en móvil: enfocable para moverse con las flechas (axe scrollable-region-focusable,
+          WCAG 2.1.1); jsx-a11y no contempla regiones desplazables. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Mapa de calor por día y hora">
         <div
           className="grid min-w-[28rem] gap-0.5 pr-3"
           style={{ gridTemplateColumns: `2.5rem repeat(${hours.length}, minmax(0, 1fr))` }}

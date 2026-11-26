@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// E2E contra `pnpm dev` + Supabase local con seed. En CI llegan con la fase 04/09.
+// E2E contra `pnpm dev` + Supabase local con seed. En CI: job `e2e` (fase 13).
 export default defineConfig({
   testDir: './e2e',
   // Un solo worker: todas las pruebas comparten la BD con seed (p. ej. fase05 y fase06 tocan la
@@ -20,6 +20,8 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}) },
     },
+    // Flujos públicos en Safari de iPhone (fase 13): las pruebas con la etiqueta @mobile.
+    { name: 'mobile-webkit', use: { ...devices['iPhone 13'] }, grep: /@mobile/ },
   ],
   webServer: {
     command: 'pnpm dev',
